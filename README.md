@@ -81,6 +81,41 @@ SQL Server Management Studio (SSMS)
 | value_price_usd  | decimal(18,2)   | Potential cost savings of the product, presented on the site next to regular price                    |
 | sale_price_usd   | decimal(18,2)   | Sale price of the product in US dollars                    |
 
+### `author`
+| Column Name  | Data Type      | Description                              |
+|--------------|----------------|------------------------------------------|
+| author_id    | nvarchar(20)    | Primary key, unique identifier for each author |
+
+### `author_characteristic`
+| Column Name  | Data Type      | Description                              |
+|--------------|----------------|------------------------------------------|
+| author_id    | nvarchar(20)    | Foreign key referencing `author(author_id)` |
+| skin_tone    | nvarchar(50)    | Skin tone of the author                 |
+| eye_color    | nvarchar(50)    | Eye color of the author                 |
+| skin_type    | nvarchar(50)    | Skin type of the author                 |
+| hair_color   | nvarchar(50)    | Hair color of the author                |
+
+### `author_reviewtext`
+| Column Name      | Data Type      | Description                              |
+|------------------|----------------|------------------------------------------|
+| author_id        | nvarchar(20)    | Foreign key referencing `author(author_id)` |
+| product_id       | nvarchar(50)    | Foreign key referencing `product(product_id)` |
+| review_title     | nvarchar(500)   | Title of the review                      |
+| review_text      | nvarchar(MAX)   | Text of the review                       |
+| submission_time  | date            | Date when the review was submitted       |
+
+### `author_rating`
+| Column Name              | Data Type      | Description                              |
+|--------------------------|----------------|------------------------------------------|
+| author_id                | nvarchar(20)    | Foreign key referencing `author(author_id)` |
+| product_id               | nvarchar(50)    | Foreign key referencing `product(product_id)` |
+| rating                   | tinyint         | Rating given by the author (Scale 1 to 5)               |
+| is_recommended           | int             | Indicate is author recommends the product or not (1-true 0-false |
+| total_pos_feedback_count | smallint        | The number of user who give positive rating      |
+| total_neg_feedback_count | smallint        | The number of user who give negative rating        |
+| total_feedback_count     | smallint        | Total number of feedbacks(positive and negative)                |
+| helpfulness              | decimal(4,2)    | Ratio of all rating helpfulness = total_pos_feedback_count / total feedback_count        |
+| submission_time          | date            | Date when the review was post was submitted       |
 
 
 

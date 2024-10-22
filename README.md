@@ -1,4 +1,4 @@
-# sephora-data-management
+### sephora-data-management
 
 **Author:**  Mohamad Hafizzudin Bin Yahya
 
@@ -19,26 +19,33 @@ SQL Server Management Studio (SSMS)
 - Data Transformation
 - Data cleaning
 
-# **Database Structure**
+### **Database Structure**
 
 **Database Name:** sephora_data_management
 
+**Original table structure**
+
+## `product_info`
+
+## `reviews1`
+
+
 **Key Tables**
 
-### `product`
+## `product`
 | Column Name  | Data Type      | Description                                           |
 |--------------|----------------|-------------------------------------------------------|
 | product_id   | nvarchar(50)    | Primary key, unique identifier for each product       |
 | product_name | nvarchar(150)   | Name of the product                                   |
 | brand_id     | int             | Foreign key referencing `brands(brand_id)`            |
 
-### `brands`
+## `brands`
 | Column Name  | Data Type      | Description                                           |
 |--------------|----------------|-------------------------------------------------------|
 | brand_id     | int             | Primary key, unique identifier for each brand         |
 | brand_name   | nvarchar(150)   | Name of the brand                                     |
 
-### `product_reviews`
+## `product_reviews`
 | Column Name      | Data Type      | Description                                           |
 |------------------|----------------|-------------------------------------------------------|
 | product_id       | nvarchar(50)    | Foreign key referencing `product(product_id)`         |
@@ -46,7 +53,7 @@ SQL Server Management Studio (SSMS)
 | average_rating   | DECIMAL(5,4)    | Average rating of the product                        |
 | reviews_count    | int             | Total number of reviews for the product               |
 
-### `product_variation`
+## `product_variation`
 | Column Name        | Data Type        | Description                                           |
 |--------------------|------------------|-------------------------------------------------------|
 | product_id         | nvarchar(50)      | Foreign key referencing `product(product_id)`         |
@@ -63,7 +70,7 @@ SQL Server Management Studio (SSMS)
 | var_max_price      | decimal(18,2)     | Maximum price among the variations                    |
 | var_min_price      | decimal(18,2)     | Minimum price among the variations                    |
 
-### `product_status`
+## `product_status`
 | Column Name         | Data Type      | Description                                           |
 |---------------------|----------------|-------------------------------------------------------|
 | product_id          | nvarchar(50)    | Foreign key referencing `product(product_id)`         |
@@ -73,7 +80,7 @@ SQL Server Management Studio (SSMS)
 | out_of_stock        | int             | Indicate product is out of stock or not ( 1-true 0-false         |
 | sephora_exclusive   | int             | Indicate whether the product is Sephora exclusive or not ( 1-true 0-false |
 
-### `product_pricing`
+## `product_pricing`
 | Column Name      | Data Type      | Description                                           |
 |------------------|----------------|-------------------------------------------------------|
 | product_id       | nvarchar(50)    | Foreign key referencing `product(product_id)`         |
@@ -81,12 +88,12 @@ SQL Server Management Studio (SSMS)
 | value_price_usd  | decimal(18,2)   | Potential cost savings of the product, presented on the site next to regular price                    |
 | sale_price_usd   | decimal(18,2)   | Sale price of the product in US dollars                    |
 
-### `author`
+## `author`
 | Column Name  | Data Type      | Description                              |
 |--------------|----------------|------------------------------------------|
 | author_id    | nvarchar(20)    | Primary key, unique identifier for each author |
 
-### `author_characteristic`
+## `author_characteristic`
 | Column Name  | Data Type      | Description                              |
 |--------------|----------------|------------------------------------------|
 | author_id    | nvarchar(20)    | Foreign key referencing `author(author_id)` |
@@ -95,7 +102,7 @@ SQL Server Management Studio (SSMS)
 | skin_type    | nvarchar(50)    | Skin type of the author                 |
 | hair_color   | nvarchar(50)    | Hair color of the author                |
 
-### `author_reviewtext`
+## `author_reviewtext`
 | Column Name      | Data Type      | Description                              |
 |------------------|----------------|------------------------------------------|
 | author_id        | nvarchar(20)    | Foreign key referencing `author(author_id)` |
@@ -104,7 +111,7 @@ SQL Server Management Studio (SSMS)
 | review_text      | nvarchar(MAX)   | Text of the review                       |
 | submission_time  | date            | Date when the review was submitted       |
 
-### `author_rating`
+## `author_rating`
 | Column Name              | Data Type      | Description                              |
 |--------------------------|----------------|------------------------------------------|
 | author_id                | nvarchar(20)    | Foreign key referencing `author(author_id)` |

@@ -184,7 +184,22 @@ The table from product_info and reviews1 are normalize into below tables
 
 **List of Primary Key**
 
-1.
+1. product.product_id (pk_product)
+2. brands.brand_id (pk_brands)
+3. author.author_id (pk_author)
+
+**List of Foreign Key**
+
+1. product_pricing.product_id REFERENCES product.product_id
+2. product_reviews.product_id REFERENCES product.product_id
+3. product_status.product_id REFERENCES product.product_id
+4. product_variation.product_id REFERENCES product.product_id
+5. product.brand_id REFERENCES brands.brand_id
+6. author_characteristic.author_id REFERENCES author.author_id
+7. author_reviewtext.author_id REFERENCES author.author_id
+8. author_reviewtext.product_id REFERENCES product.product_id
+9. author_rating.author_id REFERENCES author.author_id
+10. author_rating.product_id REFERENCES product.product_id
 
 
 

@@ -1,4 +1,4 @@
-### sephora-data-management
+# sephora-data-management
 
 **Author:**  Mohamad Hafizzudin Bin Yahya
 

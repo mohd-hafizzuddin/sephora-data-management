@@ -201,6 +201,19 @@ The table from product_info and reviews1 are normalize into below tables
 9. author_rating.author_id REFERENCES author.author_id
 10. author_rating.product_id REFERENCES product.product_id
 
+## Stored Procedure for automated data insertion
+
+1. insertupdateBrands: Inserts or updates brand data from the product_info table into the brands table. 
+2. insertupdateProduct: Inserts or updates product data from the product_info table into product table. 
+3. insertupdatePPricing: Inserts or updates product pricing data from product_info table into product_prircing table. 
+4. insertupdateReviews: Insert or updates reviews data from product info (only insert product_id and favourite_count) into reviews table.
+5. insertupdateStatus: Inserts or updates product status information into the product_status table.
+6. insertupdateVariation: Inserts or updates product variations into the product_variation table.
+7. insertupdateAuthor:
+8. insertupdateAuthorCharac:
+9. insertupdateAuthorRat:
+10. insertupdateAuthorRT:
+11. get_product_review_rating:
 
 
 

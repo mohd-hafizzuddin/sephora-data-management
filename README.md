@@ -82,6 +82,7 @@ SQL Server Management Studio (SSMS)
 
 
 ## Normalize Table
+The table from product_info and reviews1 are normalize into below tables
 
 ### `product`
 | Column Name  | Data Type      | Description                                           |
@@ -175,8 +176,15 @@ SQL Server Management Studio (SSMS)
 | helpfulness              | decimal(4,2)    | Ratio of all rating helpfulness = total_pos_feedback_count / total feedback_count        |
 | submission_time          | date            | Date when the review was post was submitted       |
 
+### Entity Relationship Diagram (ERD)
 
+![ERD](https://github.com/user-attachments/assets/86f78d83-e9f0-4e1f-80a6-055a5a8060bf)
 
+## Assigning Primary Key And Foreign Key
+
+**List of Primary Key**
+
+1.
 
 
 

@@ -1,7 +1,7 @@
 # **List of all store procedure and its explaination**
 
 
-**1. Store Procedure for Brands table data insertion**
+**1. Stored Procedure for Brands table data insertion**
 
 - This stored procedure accepts a table as a parameter.
 - It selects the necessary columns (brand_id and brand_name) from the parameter table.
@@ -58,7 +58,7 @@ END;
 EXECUTE insertupdateBrands @temptable = 'product_info';
 ```
 
-**2. Store Procedure for product table data insertion**
+**2. Stored Procedure for product table data insertion**
 
 - This stored procedure accepts a table as a parameter.
 - It selects the necessary columns (product_id,product_name and brand_id) from the parameter table.
@@ -112,7 +112,7 @@ BEGIN
 END;
 ```
 
-**3. Store Procedure for product_pricing table data insertion**
+**3. Stored Procedure for product_pricing table data insertion**
 - This stored procedure accepts a table as a parameter.
 - It selects the necessary columns (product_id,price_usd,value_price_usd,sale_price_usd) from the parameter table.
 - The procedure checks whether each product_id from the @temptable exists in the product table. Only non-existing product_id in the product table will be inserted.
@@ -168,7 +168,7 @@ BEGIN
 END;
 ```
 
-**4. Store Procedure for product_reviews table data insertion**
+**4. Stored Procedure for product_reviews table data insertion**
 - This stored procedure accepts a table as a parameter.
 - It selects the necessary columns (product_id,loves_count) from the parameter table.
 - In this store procedure we only populate product_id and favourite_count. The other remaining 2 column will be populate later using another store procedure.
@@ -221,7 +221,7 @@ CREATE OR ALTER PROCEDURE insertupdateReviews
  END;
 ```
 
-**5. Store Procedure for product_status table data insertion**
+**5. Stored Procedure for product_status table data insertion**
 - This stored procedure accepts a table as a parameter.
 - It selects the necessary columns (product_id,limited_edition,new,online_only,out_of_stock,sephora_exclusive) from the parameter table.
 - The procedure checks whether each product_id from the @temptable exists in the product table. Only non-existing product_id in the product table will be inserted.
@@ -278,7 +278,7 @@ CREATE OR ALTER PROCEDURE insertupdateStatus
  END;
 ```
 
-**6. Store Procedure for product_variation table data insertion**
+**6. Stored Procedure for product_variation table data insertion**
 - This stored procedure accepts a table as a parameter.
 - It selects the necessary columns (product_id, size, variation_type, variation_value, variation_desc, ingredients, highlights, primary_category, secondary_category, ertiary_category, child_count, child_max_price, child_min_price) from the parameter table.
 - The procedure checks whether each product_id from the temporary table exists in the product_variation. Only non-existing product_id in the product_variation table will be inserted.
@@ -355,7 +355,7 @@ CREATE OR ALTER PROCEDURE insertupdateVariation
  EXECUTE insertupdateVariation @temptable = 'product_info';
 ```
 
-**7.Store Procedure for author table**
+**7.Stored Procedure for author table**
 - This stored procedure accepts a table as a parameter.
 - It selects the necessary column (author_id) from the parameter table.
 - The procedure checks whether each author_id from the @temptable exists in the author table. Only non-existing author_id in the author table will be inserted.
@@ -405,7 +405,7 @@ BEGIN
 END;
 ```
 
-**8.Store Procedure for author_characteristic table**
+**8.Stored Procedure for author_characteristic table**
 - This stored procedure accepts a table as a parameter.
 - It selects the necessary column (author_id,skin_tone,eye_color,skin_type,hair_color) from the parameter table.
 - The procedure checks whether each author_id from the @temptable exists in the author_characteristic table. Only non-existing author_id in the author_characteristic table will be inserted.
@@ -448,7 +448,7 @@ BEGIN
 END;
 ```
 
-**9.Store Procedure for author_rating table**
+**9.Stored Procedure for author_rating table**
 - This stored procedure accepts a table as a parameter.
 - It selects the necessary column (author_id, product_id, rating, is_recommended, total_pos_feedback_count, total_neg_feedback_count, total_feedback_count, helpfulness, submission_time) from the parameter table.
 - The procedure checks whether each author_id from the @temptable exists in the author_rating table. Only non-existing author_id in the author_rating table will be inserted.
@@ -488,7 +488,7 @@ BEGIN
 	END CATCH
 END;
 ```
-**10.Store Procedure for author_reviewtext**
+**10.Stored Procedure for author_reviewtext**
 - This stored procedure accepts a table as a parameter.
 - It selects the necessary column (author_id,product_id,review_title,review_text,submission_time) from the parameter table.
 - The procedure checks whether each author_id from the @temptable exists in the author_reviewtext table. Only non-existing author_id in the author_reviewtext table will be inserted.
@@ -531,16 +531,15 @@ BEGIN
 END;
 ```
 
-**11.Store Procedure for calculating average rating and count of review for product_review table**
-- This stored procedure does not have any parameter.
-- The store procedure begin with calculating the average rating from author_rating table and will be store inside a CTE name average_r.
-- Next, using CTE, we calculate the count of review from author_reviewtext table.
-- We use MERGE INTO command to merge the calculated value into product_reviews table. We use MERGE INTO because we wanted to update the result of average rating and count of review into product_review table if the product_id is matched.
-- If the product_id is not matched then we insert the new product_id along with the calculated value.
-- BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
-- The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
-- After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
-  
+**11.Stored Procedure for calculating average rating and count of review for product_review table**
+
+- This stored procedure, named get_product_review_rating, does not accept any parameters.
+- It begins by calculating the average rating from the author_rating table, storing the result in a Common Table Expression (CTE) named average_r.
+- Next, using another CTE, it calculates the count of reviews from the author_reviewtext table, stored in count_r.
+- The procedure employs the MERGE INTO command to update the product_reviews table. This command is advantageous as it allows for both updating existing records and inserting new ones based on matching product_id.
+- If a product_id in the product_reviews table matches one in the CTEs, the procedure updates the average rating and review count. If no match is found, it inserts a new record with the calculated values.
+- The BEGIN TRANSACTION ... COMMIT TRANSACTION block ensures atomicity. If any error occurs during the process, all operations are rolled back to prevent partial updates.
+- The procedure includes a BEGIN TRY ... BEGIN CATCH block to handle errors. If an error occurs, it rolls back the transaction and raises the error using the THROW statement, ensuring proper error handling. 
 ```sql
 CREATE OR ALTER PROCEDURE get_product_review_rating 
 AS

@@ -201,7 +201,7 @@ The table from product_info and reviews1 are normalize into below tables
 9. author_rating.author_id REFERENCES author.author_id
 10. author_rating.product_id REFERENCES product.product_id
 
-## Stored Procedure for automated data insertion
+## List of Stored Procedure for automated data insertion
 
 1. insertupdateBrands: Automated inserts or updates brand data from the product_info table into the brands table. 
 2. insertupdateProduct: Automated inserts or updates product data from the product_info table into product table. 

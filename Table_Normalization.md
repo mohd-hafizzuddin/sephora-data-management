@@ -1,10 +1,8 @@
-#**Table Normalization Process**
+# **Table Normalization Process**
 
 Table normalization technique is apply to reduce data redundacy, improve data integrity and make data much more efficient by reducing it into smaller table. It help to avoid data from duplicate and ensure the insert, update and deletion process more accurate. In this project we normalize the original table product_info into few other table. We also normalize reviews1 table into smaller table. All table normalization process follow all the table normalization rules.
 
-**Original Table**
-
-**Original table structure**
+**Original 'product_info' Table**
 
 ### `product_info`
 | Column Name         | Data Type        | Description                                      |
@@ -37,7 +35,7 @@ Table normalization technique is apply to reduce data redundacy, improve data in
 | child_max_price     | decimal(18, 2)    | The highest price among the variations of the product |
 | child_min_price     | decimal(18, 2)    | The lowest price among the variations of the product |
 
-Before we begin the normalization process, we first need to understand each of every column on what it represent. It make the table normalization much more easier and making sure the new table create is accurate. We normaliza the above table into 6 new table. Below is the list all all table including it description and also it command to create the table.
+Before we begin the normalization process, we first need to understand each of every column on what it represent. It make the table normalization much more easier and making sure the new table create is accurate. We normalize the product_info table into 6 new table. Below is the list of all table including it description and also it command to create the table.
 
 ### `product`
 | Column Name  | Data Type      | Description                                           |
@@ -157,9 +155,109 @@ sale_price_usd decimal(18,2)
 );
 ```
 
+Next, we will normalize the reviews1 table.
 
+**Original 'reviews1' Table**
 
+### `reviews1`
+| Column Name                 | Data Type        | Description                                      |
+|-----------------------------|------------------|--------------------------------------------------|
+| author_id                   | nvarchar(20)     | The unique identifier for the author of the review on the website |
+| rating                      | tinyint          | The rating given by the author for the product on a scale of 1 to 5 |
+| is_recommended               | int              | Indicates if the author recommends the product or not (1-true, 0-false) |
+| helpfulness                 | decimal(4, 2)    | The ratio of all ratings to positive ratings for the review: helpfulness = total_pos_feedback_count / total_feedback_count |
+| total_feedback_count        | smallint         | Total number of feedback (positive and negative ratings) left by users for the review |
+| total_neg_feedback_count    | smallint         | The number of users who gave a negative rating for the review |
+| total_pos_feedback_count    | smallint         | The number of users who gave a positive rating for the review |
+| submission_time             | date             | Date the review was posted on the website in the 'yyyy-mm-dd' format |
+| review_text                 | nvarchar(MAX)    | The main text of the review written by the author |
+| review_title                | nvarchar(500)    | The title of the review written by the author   |
+| skin_tone                   | nvarchar(50)     | Author's skin tone (e.g. fair, tan, etc.)      |
+| eye_color                   | nvarchar(50)     | Author's eye color (e.g. brown, green, etc.)    |
+| skin_type                   | nvarchar(50)     | Author's skin type (e.g. combination, oily, etc.) |
+| hair_color                  | nvarchar(50)     | Author's hair color (e.g. brown, auburn, etc.)  |
+| product_id                  | nvarchar(50)     | The unique identifier for the product on the website |
+| product_name                | nvarchar(100)    | The full name of the product                     |
+| brand_name                  | nvarchar(50)     | The full name of the product brand               |
+| price_usd                   | decimal(18, 2)   | The price of the product in US dollars           |
 
+Using table normalization technique and follow all it rules, we normalize above table into 4 new table
+
+### `author`
+| Column Name  | Data Type      | Description                              |
+|--------------|----------------|------------------------------------------|
+| author_id    | nvarchar(20)    | Primary key, unique identifier for each author |
+
+```sql
+CREATE TABLE author (
+author_id nvarchar(20) NOT NULL,
+);
+```
+
+### `author_characteristic`
+| Column Name  | Data Type      | Description                              |
+|--------------|----------------|------------------------------------------|
+| author_id    | nvarchar(20)    | Foreign key referencing `author(author_id)` |
+| skin_tone    | nvarchar(50)    | Skin tone of the author                 |
+| eye_color    | nvarchar(50)    | Eye color of the author                 |
+| skin_type    | nvarchar(50)    | Skin type of the author                 |
+| hair_color   | nvarchar(50)    | Hair color of the author                |
+
+```sql
+CREATE TABLE author_characteristic (
+author_id nvarchar(20),
+skin_tone nvarchar(50),
+eye_color nvarchar(50),
+skin_type nvarchar(50),
+hair_color nvarchar(50)
+);
+```
+
+### `author_reviewtext`
+| Column Name      | Data Type      | Description                              |
+|------------------|----------------|------------------------------------------|
+| author_id        | nvarchar(20)    | Foreign key referencing `author(author_id)` |
+| product_id       | nvarchar(50)    | Foreign key referencing `product(product_id)` |
+| review_title     | nvarchar(500)   | Title of the review                      |
+| review_text      | nvarchar(MAX)   | Text of the review                       |
+| submission_time  | date            | Date when the review was submitted       |
+
+```sql
+CREATE TABLE author_reviewtext(
+author_id nvarchar(20) NOT NULL,
+product_id nvarchar(50) NOT NULL,
+review_title nvarchar(500),
+review_text nvarchar(MAX),
+submission_time date NOT NULL
+);
+```
+
+### `author_rating`
+| Column Name              | Data Type      | Description                              |
+|--------------------------|----------------|------------------------------------------|
+| author_id                | nvarchar(20)    | Foreign key referencing `author(author_id)` |
+| product_id               | nvarchar(50)    | Foreign key referencing `product(product_id)` |
+| rating                   | tinyint         | Rating given by the author (Scale 1 to 5)               |
+| is_recommended           | int             | Indicate is author recommends the product or not (1-true 0-false |
+| total_pos_feedback_count | smallint        | The number of user who give positive rating      |
+| total_neg_feedback_count | smallint        | The number of user who give negative rating        |
+| total_feedback_count     | smallint        | Total number of feedbacks(positive and negative)                |
+| helpfulness              | decimal(4,2)    | Ratio of all rating helpfulness = total_pos_feedback_count / total feedback_count        |
+| submission_time          | date            | Date when the review was post was submitted       |
+
+```sql
+CREATE TABLE author_rating(
+author_id nvarchar(20) NOT NULL,
+product_id nvarchar(50) NOT NULL,
+rating tinyint NOT NULL,
+is_recommended int,
+total_pos_feedback_count smallint NOT NULL,
+total_neg_feedback_count smallint NOT NULL,
+total_feedback_count smallint NOT NULL,
+helpfulness decimal(4,2),
+submission_time date NOT NULL
+);
+```
 
 
 

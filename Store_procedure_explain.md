@@ -281,7 +281,7 @@ CREATE OR ALTER PROCEDURE insertupdateStatus
 **6. Store Procedure for product_variation table data insertion**
 - This stored procedure accepts a table as a parameter.
 - It selects the necessary columns (product_id, size, variation_type, variation_value, variation_desc, ingredients, highlights, primary_category, secondary_category, ertiary_category, child_count, child_max_price, child_min_price) from the parameter table.
-- The procedure checks whether each product_id from the temporary table exists in the product table. Only non-existing product_id in the product table will be inserted.
+- The procedure checks whether each product_id from the temporary table exists in the product_variation. Only non-existing product_id in the product_variation table will be inserted.
 - If a product_id already exists, the procedure updates the corresponding record in the product table to reflect any changes in the size, variation_type, variation_value, variation_desc, ingredients, highlights, primary_category, secondary_category, ertiary_category, child_count, child_max_price and child_min_price columns.
 - BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
 - The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
@@ -408,8 +408,7 @@ END;
 **8.Store Procedure for author_characteristic table**
 - This stored procedure accepts a table as a parameter.
 - It selects the necessary column (author_id,skin_tone,eye_color,skin_type,hair_color) from the parameter table.
-- The procedure checks whether each author_id from the @temptable exists in the author table. Only non-existing author_id in the author table will be inserted.
-- If a author_id already exists, the procedure updates the corresponding record in the author table to reflect any changes in the skin_tone,eye_color,skin_type and hair_color column.
+- The procedure checks whether each author_id from the @temptable exists in the author_characteristic table. Only non-existing author_id in the author_characteristic table will be inserted.
 - BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
 - The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
 - After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
@@ -451,16 +450,13 @@ END;
 
 **9.Store Procedure for author_rating table**
 - This stored procedure accepts a table as a parameter.
-- It selects the necessary column (author_id,skin_tone,eye_color,skin_type,hair_color) from the parameter table.
-- The procedure checks whether each author_id from the @temptable exists in the author table. Only non-existing author_id in the author table will be inserted.
-- If a author_id already exists, the procedure updates the corresponding record in the author table to reflect any changes in the skin_tone,eye_color,skin_type and hair_color column.
+- It selects the necessary column (author_id, product_id, rating, is_recommended, total_pos_feedback_count, total_neg_feedback_count, total_feedback_count, helpfulness, submission_time) from the parameter table.
+- The procedure checks whether each author_id from the @temptable exists in the author_rating table. Only non-existing author_id in the author_rating table will be inserted.
 - BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
 - The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
 - After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
 
 ```sql
-
-
 CREATE OR ALTER PROCEDURE insertAuthorRat
  @temptable nvarchar(128)
 AS
@@ -473,7 +469,8 @@ BEGIN
 	BEGIN TRY
 		SET @InsertSql = '
 		INSERT INTO author_rating
-		SELECT DISTINCT author_id,product_id,rating,is_recommended,total_pos_feedback_count,total_neg_feedback_count,total_feedback_count,helpfulness,submission_time
+		SELECT DISTINCT 
+                author_id,product_id,rating,is_recommended,total_pos_feedback_count,total_neg_feedback_count,total_feedback_count,helpfulness,submission_time
 		FROM' + QUOTENAME(@temptable) + ' t
 		WHERE NOT EXISTS (
 		       SELECT 1 
@@ -492,7 +489,12 @@ BEGIN
 END;
 ```
 **10.Store Procedure for author_reviewtext**
-
+- This stored procedure accepts a table as a parameter.
+- It selects the necessary column (author_id,product_id,review_title,review_text,submission_time) from the parameter table.
+- The procedure checks whether each author_id from the @temptable exists in the author_reviewtext table. Only non-existing author_id in the author_reviewtext table will be inserted.
+- BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
+- The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
+- After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
 ```sql
 CREATE OR ALTER PROCEDURE insertAuthorRT
  @temptable nvarchar(128)
@@ -530,7 +532,15 @@ END;
 ```
 
 **11.Store Procedure for calculating average rating and count of review for product_review table**
-
+- This stored procedure does not have any parameter.
+- The store procedure begin with calculating the average rating from author_rating table and will be store inside a CTE name average_r.
+- Next, using CTE, we calculate the count of review from author_reviewtext table.
+- We use MERGE INTO command to merge the calculated value into product_reviews table. We use MERGE INTO because we wanted to update the result of average rating and count of review into product_review table if the product_id is matched.
+- If the product_id is not matched then we insert the new product_id along with the calculated value.
+- BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
+- The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
+- After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
+  
 ```sql
 CREATE OR ALTER PROCEDURE get_product_review_rating 
 AS
@@ -573,6 +583,4 @@ BEGIN
 		THROW;
 	END CATCH
 END;
-
-EXECUTE get_product_review_rating;
 ```

@@ -278,7 +278,7 @@ CREATE OR ALTER PROCEDURE insertupdateStatus
  END;
 ```
 
-**5. Store Procedure for product_variation table data insertion**
+**6. Store Procedure for product_variation table data insertion**
 - This stored procedure accepts a table name as a parameter.
 - It selects the necessary columns (product_id, size, variation_type, variation_value, variation_desc, ingredients, highlights, primary_category, secondary_category, ertiary_category, child_count, child_max_price, child_min_price) from the parameter table.
 - The procedure checks whether each product_id from the temporary table exists in the product table. Only non-existing product_id in the product table will be inserted.

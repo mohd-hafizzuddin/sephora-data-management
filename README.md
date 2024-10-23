@@ -203,17 +203,17 @@ The table from product_info and reviews1 are normalize into below tables
 
 ## Stored Procedure for automated data insertion
 
-1. insertupdateBrands: Inserts or updates brand data from the product_info table into the brands table. 
-2. insertupdateProduct: Inserts or updates product data from the product_info table into product table. 
-3. insertupdatePPricing: Inserts or updates product pricing data from product_info table into product_prircing table. 
-4. insertupdateReviews: Insert or updates reviews data from product info (only insert product_id and favourite_count) into reviews table.
-5. insertupdateStatus: Inserts or updates product status information into the product_status table.
-6. insertupdateVariation: Inserts or updates product variations into the product_variation table.
-7. insertupdateAuthor:
-8. insertupdateAuthorCharac:
-9. insertupdateAuthorRat:
-10. insertupdateAuthorRT:
-11. get_product_review_rating:
+1. insertupdateBrands: Automated inserts or updates brand data from the product_info table into the brands table. 
+2. insertupdateProduct: Automated inserts or updates product data from the product_info table into product table. 
+3. insertupdatePPricing: Automated inserts or updates product pricing data from product_info table into product_pricing table. 
+4. insertupdateReviews: Automated insert or updates reviews data from product info (only insert product_id and favourite_count) into product_reviews table.
+5. insertupdateStatus: Automated inserts or updates product status from product_info table information into the product_status table.
+6. insertupdateVariation: Automated inserts or updates product variations from product_info table into the product_variation table.
+7. insertupdateAuthor: Automated insert or updates author id from reviews table into author table.
+8. insertAuthorCharac: Automated insert author characteristic from reviews table into author_characteristic table.
+9. insertAuthorRat: Automated insert author rating from reviews table into author_rating table.
+10. insertAuthorRT: Automated insert author review text from reviews table intp author_reviewtext table.
+11. get_product_review_rating: Automated calculate the average rating from author_rating and count of review from author_reviewtext table then update into product_reviews table.
 
 
 

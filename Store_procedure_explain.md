@@ -1,4 +1,4 @@
-# **List of all store procedure and all its explaination**
+# **List of all store procedure and its explaination**
 
 
 **1. Store Procedure for Brands table data insertion**

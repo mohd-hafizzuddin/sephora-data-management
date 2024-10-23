@@ -355,3 +355,208 @@ CREATE OR ALTER PROCEDURE insertupdateVariation
  EXECUTE insertupdateVariation @temptable = 'product_info';
 ```
 
+**7.Store Procedure for author table**
+
+```sql
+CREATE OR ALTER PROCEDURE insertupdateAuthor
+@temptable nvarchar(128)
+AS
+BEGIN
+	DECLARE @InsertSql NVARCHAR(MAX);
+	DECLARE @UpdateSql NVARCHAR(MAX);
+
+	BEGIN TRANSACTION;
+
+	BEGIN TRY
+		SET @InsertSql = '
+		INSERT INTO author
+		SELECT DISTINCT author_id 
+		FROM ' + QUOTENAME(@temptable) + ' t
+		WHERE NOT EXISTS (
+		                  SELECT 1
+						  FROM author a
+						  WHERE a.author_id = t.author_id);';
+
+		EXECUTE sp_executesql @InsertSql;
+
+		SET @UpdateSql = '
+		UPDATE a
+		SET a.author_id = t.author_id
+		FROM author a
+		JOIN' + QUOTENAME(@temptable) + 't
+		ON a.author_id = t.author_id;'; --this maybe not necessary
+
+		EXECUTE sp_executesql @UpdateSql;
+	    
+		COMMIT TRANSACTION;
+ 	END TRY
+
+	BEGIN CATCH
+		ROLLBACK TRANSACTION;
+		THROW;
+	END CATCH
+END;
+```
+
+**8.Store Procedure for author_characteristic table**
+
+```sql
+CREATE OR ALTER PROCEDURE insertAuthorCharac
+ @temptable nvarchar(128)
+AS
+BEGIN
+	DECLARE @InsertSql nvarchar(MAX);
+
+	BEGIN TRANSACTION;
+
+	BEGIN TRY
+		SET @InsertSql = '
+		INSERT INTO author_characteristic
+		SELECT DISTINCT author_id,skin_tone,eye_color,skin_type,hair_color
+		FROM' + QUOTENAME(@temptable) + ' t
+		WHERE NOT EXISTS (
+		       SELECT 1 
+			   FROM author_characteristic ac
+			   WHERE ac.author_id = t.author_id AND
+			         ac.skin_tone = t.skin_tone AND
+					 ac.eye_color = t.eye_color AND
+					 ac.skin_type = t.skin_type AND
+					 ac.hair_color = t.hair_color);';
+
+		EXECUTE sp_executesql @InsertSql;
+
+		COMMIT TRANSACTION;
+	END TRY
+
+	BEGIN CATCH
+		ROLLBACK TRANSACTION;
+		THROW;
+	END CATCH
+END;
+```
+
+**9.Store Procedure for author_rating table**
+
+```sql
+
+
+CREATE OR ALTER PROCEDURE insertAuthorRat
+ @temptable nvarchar(128)
+AS
+BEGIN
+	DECLARE @InsertSql nvarchar(MAX);
+	DECLARE @UpdateSql nvarchar(MAX);
+
+	BEGIN TRANSACTION;
+
+	BEGIN TRY
+		SET @InsertSql = '
+		INSERT INTO author_rating
+		SELECT DISTINCT author_id,product_id,rating,is_recommended,total_pos_feedback_count,total_neg_feedback_count,total_feedback_count,helpfulness,submission_time
+		FROM' + QUOTENAME(@temptable) + ' t
+		WHERE NOT EXISTS (
+		       SELECT 1 
+			   FROM author_rating ar
+			   WHERE ar.author_id = t.author_id);';
+
+		EXECUTE sp_executesql @InsertSql;
+
+		COMMIT TRANSACTION;
+	END TRY
+
+	BEGIN CATCH
+		ROLLBACK TRANSACTION;
+		THROW;
+	END CATCH
+END;
+```
+**10.Store Procedure for author_reviewtext**
+
+```sql
+CREATE OR ALTER PROCEDURE insertAuthorRT
+ @temptable nvarchar(128)
+AS
+BEGIN
+	DECLARE @InsertSql nvarchar(MAX);
+	DECLARE @UpdateSql nvarchar(MAX);
+
+	BEGIN TRANSACTION;
+
+	BEGIN TRY
+		SET @InsertSql = '
+		INSERT INTO author_reviewtext
+		SELECT DISTINCT author_id,product_id,review_title,review_text,submission_time
+		FROM' + QUOTENAME(@temptable) + ' t
+		WHERE NOT EXISTS (
+		       SELECT 1 
+			   FROM author_reviewtext art
+			   WHERE art.author_id = t.author_id AND
+			         art.product_id = t.product_id AND
+					 art.review_title = t.review_title AND
+					 art.review_text = t.review_text AND
+					 art.submission_time = t.submission_time);';
+
+		EXECUTE sp_executesql @InsertSql;
+
+		COMMIT TRANSACTION;
+	END TRY
+
+	BEGIN CATCH
+		ROLLBACK TRANSACTION;
+		THROW;
+	END CATCH
+END;
+
+
+-- SP execution
+
+EXECUTE insertupdateAuthor @temptable = 'reviews1';
+EXECUTE insertAuthorCharac @temptable = 'reviews1';
+EXECUTE insertAuthorRat @temptable = 'reviews1';
+EXECUTE insertAuthorRT @temptable = 'reviews1';
+
+-- Store procedure to calculate product review and rating
+CREATE OR ALTER PROCEDURE get_product_review_rating 
+AS
+BEGIN
+	BEGIN TRY
+		BEGIN TRANSACTION;
+		
+		WITH average_r AS ( -- CTE to calculate average rating on author rating table
+		SELECT product_id,
+			AVG(rating) AS avg_rating
+		FROM author_rating
+		GROUP BY product_id),
+
+		count_r AS ( -- CTE to calculate count of review on author_reviewtext
+		SELECT product_id,
+			COUNT(review_title) AS count_review
+		FROM author_reviewtext
+		GROUP BY product_id)
+
+		MERGE INTO product_reviews AS pr
+		USING average_r AS ar
+		LEFT JOIN count_r AS cr
+			ON ar.product_id = cr.product_id
+		ON pr.product_id = ar.product_id
+
+		WHEN MATCHED THEN
+			UPDATE
+				SET pr.average_rating = ar.avg_rating,
+				    pr.reviews_count = cr.count_review
+
+		WHEN NOT MATCHED BY Target THEN 
+			INSERT (product_id,average_rating,reviews_count)
+			VALUES (ar.product_id,ar.avg_rating,cr.count_review);
+
+	    COMMIT TRANSACTION;
+	END TRY
+
+	BEGIN CATCH
+		ROLLBACK TRANSACTION;
+		THROW;
+	END CATCH
+END;
+
+EXECUTE get_product_review_rating;
+```

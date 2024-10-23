@@ -1,9 +1,17 @@
-**List of all store procedure and all its explaination**
+# **List of all store procedure and all its explaination**
+
+
+**1. Store Procedure for Brands table data insertion**
+
+- This stored procedure accepts a table name as a parameter.
+- It selects the necessary columns (brand_id and brand_name) from the parameter table.
+- The procedure checks whether each brand_id from the temporary table exists in the brands table. Only new brand_ids (non-existing in the brands table) will be inserted.
+- If a brand_id already exists, the procedure updates the corresponding record in the brands table to reflect any changes in the brand_name.
+- Transactions are used to ensure atomicity, meaning that if any error occurs, all operations are rolled back to avoid partial updates.
+- The procedure uses a TRY...CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is rolled back to maintain data integrity.
+- After the rollback, the THROW statement re-raises the error, allowing it to be caught or logged by higher-level error handling mechanisms.
 
 ```sql
-
---1. Store Procedure for Brands table data insertion
-
 CREATE OR ALTER PROCEDURE insertupdateBrands
 	@temptable nvarchar(128)
 AS
@@ -96,7 +104,8 @@ BEGIN
 END;
 ```
 
-``sql
+
+```sql
 --3. SP for product_pricing table data insertion
 
 CREATE OR ALTER PROCEDURE insertupdatePPricing
@@ -145,7 +154,7 @@ BEGIN
 END;
 ```
 
-``sql
+```sql
 --4. SP for product_reviews table data insertion
 -- In this store procedure we only populate product_id and favourite_count.
 -- The other remaining 2 column will be populate later

@@ -3,10 +3,10 @@
 
 **1. Store Procedure for Brands table data insertion**
 
-- This stored procedure accepts a table name as a parameter.
+- This stored procedure accepts a table as a parameter.
 - It selects the necessary columns (brand_id and brand_name) from the parameter table.
-- The procedure checks whether each brand_id from the temporary table exists in the brands table. Only new brand_ids (non-existing in the brands table) will be inserted.
-- If a brand_id already exists, the procedure updates the corresponding record in the brands table to reflect any changes in the brand name.
+- The procedure checks whether each brand_id from the @temptable exists in the brands table. Only non-existing brand_id will be inserted.
+- If a brand_id already exists, the procedure updates the corresponding record in the brands table to reflect any changes in the brand name column.
 - BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
 - The procedure uses a TRY...CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
 - After the ROLLBACK, the THROW statement re-raises the error, allowing it to be detected and make the error handling possible.
@@ -60,10 +60,10 @@ EXECUTE insertupdateBrands @temptable = 'product_info';
 
 **2. Store Procedure for product table data insertion**
 
-- This stored procedure accepts a table name as a parameter.
+- This stored procedure accepts a table as a parameter.
 - It selects the necessary columns (product_id,product_name and brand_id) from the parameter table.
-- The procedure checks whether each product_id from the temporary table exists in the product table. Only non-existing product_id in the product table will be inserted.
-- If a product_id already exists, the procedure updates the corresponding record in the product table to reflect any changes in the product name and brand_id.
+- The procedure checks whether each product_id from the @temptable exists in the product table. Only non-existing product_id in the product table will be inserted.
+- If a product_id already exists, the procedure updates the corresponding record in the product table to reflect any changes in the product name and brand_id columns.
 - BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
 - The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
 - After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
@@ -113,10 +113,10 @@ END;
 ```
 
 **3. Store Procedure for product_pricing table data insertion**
-- This stored procedure accepts a table name as a parameter.
+- This stored procedure accepts a table as a parameter.
 - It selects the necessary columns (product_id,price_usd,value_price_usd,sale_price_usd) from the parameter table.
-- The procedure checks whether each product_id from the temporary table exists in the product table. Only non-existing product_id in the product table will be inserted.
-- If a product_id already exists, the procedure updates the corresponding record in the product table to reflect any changes in the price_usd,value_price_usd and sale_price_usd.
+- The procedure checks whether each product_id from the @temptable exists in the product table. Only non-existing product_id in the product table will be inserted.
+- If a product_id already exists, the procedure updates the corresponding record in the product table to reflect any changes in the price_usd,value_price_usd and sale_price_usd columns.
 - BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
 - The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
 - After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
@@ -169,11 +169,11 @@ END;
 ```
 
 **4. Store Procedure for product_reviews table data insertion**
-- This stored procedure accepts a table name as a parameter.
+- This stored procedure accepts a table as a parameter.
 - It selects the necessary columns (product_id,loves_count) from the parameter table.
 - In this store procedure we only populate product_id and favourite_count. The other remaining 2 column will be populate later using another store procedure.
-- The procedure checks whether each product_id from the temporary table exists in the product table. Only non-existing product_id in the product table will be inserted.
-- If a product_id already exists, the procedure updates the corresponding record in the product table to reflect any changes in the loves_count.
+- The procedure checks whether each product_id from the @temptable exists in the product table. Only non-existing product_id in the product table will be inserted.
+- If a product_id already exists, the procedure updates the corresponding record in the product table to reflect any changes in the loves_count column.
 - BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
 - The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
 - After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
@@ -222,10 +222,10 @@ CREATE OR ALTER PROCEDURE insertupdateReviews
 ```
 
 **5. Store Procedure for product_status table data insertion**
-- This stored procedure accepts a table name as a parameter.
+- This stored procedure accepts a table as a parameter.
 - It selects the necessary columns (product_id,limited_edition,new,online_only,out_of_stock,sephora_exclusive) from the parameter table.
-- The procedure checks whether each product_id from the temporary table exists in the product table. Only non-existing product_id in the product table will be inserted.
-- If a product_id already exists, the procedure updates the corresponding record in the product table to reflect any changes in the limited_edition,new,online_only,out_of_stock and sephora_exclusive.
+- The procedure checks whether each product_id from the @temptable exists in the product table. Only non-existing product_id in the product table will be inserted.
+- If a product_id already exists, the procedure updates the corresponding record in the product table to reflect any changes in the limited_edition,new,online_only,out_of_stock and sephora_exclusive columns.
 - BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
 - The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
 - After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
@@ -279,10 +279,10 @@ CREATE OR ALTER PROCEDURE insertupdateStatus
 ```
 
 **6. Store Procedure for product_variation table data insertion**
-- This stored procedure accepts a table name as a parameter.
+- This stored procedure accepts a table as a parameter.
 - It selects the necessary columns (product_id, size, variation_type, variation_value, variation_desc, ingredients, highlights, primary_category, secondary_category, ertiary_category, child_count, child_max_price, child_min_price) from the parameter table.
 - The procedure checks whether each product_id from the temporary table exists in the product table. Only non-existing product_id in the product table will be inserted.
-- If a product_id already exists, the procedure updates the corresponding record in the product table to reflect any changes in the size, variation_type, variation_value, variation_desc, ingredients, highlights, primary_category, secondary_category, ertiary_category, child_count, child_max_price and child_min_price.
+- If a product_id already exists, the procedure updates the corresponding record in the product table to reflect any changes in the size, variation_type, variation_value, variation_desc, ingredients, highlights, primary_category, secondary_category, ertiary_category, child_count, child_max_price and child_min_price columns.
 - BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
 - The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
 - After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
@@ -327,7 +327,7 @@ CREATE OR ALTER PROCEDURE insertupdateVariation
 		UPDATE pv
 		SET pv.product_id = t.product_id,
 		    pv.size = t.size,
-            pv.variation_type = t.variation_type,
+                    pv.variation_type = t.variation_type,
 			pv.variation_value = t.variation_value,
 			pv.variation_desc = t.variation_desc,
 			pv.ingredients = t.ingredients,
@@ -356,7 +356,14 @@ CREATE OR ALTER PROCEDURE insertupdateVariation
 ```
 
 **7.Store Procedure for author table**
-
+- This stored procedure accepts a table as a parameter.
+- It selects the necessary column (author_id) from the parameter table.
+- The procedure checks whether each author_id from the @temptable exists in the author table. Only non-existing author_id in the author table will be inserted.
+- If a author_id already exists, the procedure updates the corresponding record in the author table to reflect any changes in the author_id column.
+- BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
+- The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
+- After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
+  
 ```sql
 CREATE OR ALTER PROCEDURE insertupdateAuthor
 @temptable nvarchar(128)
@@ -399,7 +406,14 @@ END;
 ```
 
 **8.Store Procedure for author_characteristic table**
-
+- This stored procedure accepts a table as a parameter.
+- It selects the necessary column (author_id,skin_tone,eye_color,skin_type,hair_color) from the parameter table.
+- The procedure checks whether each author_id from the @temptable exists in the author table. Only non-existing author_id in the author table will be inserted.
+- If a author_id already exists, the procedure updates the corresponding record in the author table to reflect any changes in the skin_tone,eye_color,skin_type and hair_color column.
+- BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
+- The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
+- After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
+  
 ```sql
 CREATE OR ALTER PROCEDURE insertAuthorCharac
  @temptable nvarchar(128)
@@ -436,6 +450,13 @@ END;
 ```
 
 **9.Store Procedure for author_rating table**
+- This stored procedure accepts a table as a parameter.
+- It selects the necessary column (author_id,skin_tone,eye_color,skin_type,hair_color) from the parameter table.
+- The procedure checks whether each author_id from the @temptable exists in the author table. Only non-existing author_id in the author table will be inserted.
+- If a author_id already exists, the procedure updates the corresponding record in the author table to reflect any changes in the skin_tone,eye_color,skin_type and hair_color column.
+- BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
+- The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
+- After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
 
 ```sql
 
@@ -506,16 +527,11 @@ BEGIN
 		THROW;
 	END CATCH
 END;
+```
 
+**11.Store Procedure for calculating average rating and count of review for product_review table**
 
--- SP execution
-
-EXECUTE insertupdateAuthor @temptable = 'reviews1';
-EXECUTE insertAuthorCharac @temptable = 'reviews1';
-EXECUTE insertAuthorRat @temptable = 'reviews1';
-EXECUTE insertAuthorRT @temptable = 'reviews1';
-
--- Store procedure to calculate product review and rating
+```sql
 CREATE OR ALTER PROCEDURE get_product_review_rating 
 AS
 BEGIN

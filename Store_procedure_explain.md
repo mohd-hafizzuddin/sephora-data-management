@@ -1,8 +1,7 @@
 # **List of all store procedure and its explanation**
 
 
-Stored Procedure for Brands Table Data Insertion/Update
-This stored procedure handles the insertion and updating of records in the Brands table.
+## **Stored Procedure for Brands Table Data Insertion/Update**
 
 **1. CTE for Unique Brands:**
 

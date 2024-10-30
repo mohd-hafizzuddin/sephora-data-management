@@ -507,7 +507,7 @@ total_neg_feedback_count,total_feedback_count,helpfulness,submission_time** from
 
 **2. MERGE Statement:**
 
-The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the author_rating table. The MERGE use **author_rating table** as it **TARGET** and the **unique_rat** CTE table as it **SOURCE** on **author_id** and **product_id**. When the **author_id** and **product_id** from **author_rating** table and CTE table(unique_rat) match, it will update the product_id,rating,is_recommended, total_pos_feedback_count,
+The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the author_rating table. The MERGE use **author_rating table** as it **TARGET** and the **unique_rat** CTE table as it **SOURCE** on **author_id** and **product_id**. When the **author_id** and **product_id** from **author_rating** table and CTE table(unique_rat) match, it will update the rating,is_recommended, total_pos_feedback_count,
 total_neg_feedback_count, total_feedback_count,helpfulness and submission_time column. When a author_id and product_id are not match between author_rating table and CTE table(unique_rat), it will insert the new value from CTE table(unique_rat) into author_rating table.
 
 **3. Transaction Management:**
@@ -579,58 +579,89 @@ BEGIN
 		END CATCH
 END;
 ```
-**10.Stored Procedure for author_reviewtext**
-- This stored procedure accepts a table as a parameter.
-- It selects the necessary column (author_id,product_id,review_title,review_text,submission_time) from the parameter table.
-- The procedure checks whether each author_id from the @temptable exists in the author_reviewtext table. Only non-existing author_id in the author_reviewtext table will be inserted.
-- BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
-- The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
-- After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
+**Stored Procedure for author_reviewtext**
+**1. CTE for Unique Review:**
+
+The procedure uses a Common Table Expression (CTE) named **unique_review** to select **author_id,product_id,review_title,review_text and submission_time** from the **reviews1** table. **ROW_NUMBER()** function is use to assigns a unique number to each row per author_id,product_id with the latest submission_time allowing for filtering of duplicates and choose the latest review submitted.
+
+**2. MERGE Statement:**
+
+The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the author_reviewtext table. The MERGE use **author_reviewtext table** as it **TARGET** and the **unique_review** CTE table as it **SOURCE** on **author_id** and **product_id**. When the **author_id** and **product_id** from **author_reviewtext** table and CTE table(unique_review) match, it will update the review_title, review_text and submission_time column. When a author_id and product_id are not match between author_review table and CTE table(unique_review), it will insert the new value from CTE table(unique_review) into author_review table.
+
+**3. Transaction Management:**
+
+The use of BEGIN TRANSACTION, COMMIT TRANSACTION, and error handling via TRY...CATCH ensures that if any part of the operation fails, all changes are rolled back to maintain data integrity.
+
+**4. Error Handling:**
+
+If an error occurs during the merge process, the transaction is rolled back. The error details are captured in local variables (@ErrorMessage, @ErrorSeverity, @ErrorState), and the RAISERROR statement is used to re-throw the error, allowing for effective error reporting.
+
 ```sql
-CREATE OR ALTER PROCEDURE insertAuthorRT
- @temptable nvarchar(128)
+CREATE OR ALTER PROCEDURE insertupdateAuthorReviewText
 AS
 BEGIN
-	DECLARE @InsertSql nvarchar(MAX);
-	DECLARE @UpdateSql nvarchar(MAX);
-
 	BEGIN TRANSACTION;
 
-	BEGIN TRY
-		SET @InsertSql = '
-		INSERT INTO author_reviewtext
-		SELECT DISTINCT author_id,product_id,review_title,review_text,submission_time
-		FROM' + QUOTENAME(@temptable) + ' t
-		WHERE NOT EXISTS (
-		       SELECT 1 
-			   FROM author_reviewtext art
-			   WHERE art.author_id = t.author_id AND
-			         art.product_id = t.product_id AND
-					 art.review_title = t.review_title AND
-					 art.review_text = t.review_text AND
-					 art.submission_time = t.submission_time);';
+		BEGIN TRY
+			WITH unique_review AS (
+				SELECT author_id,
+				       product_id,
+					   review_title,
+					   review_text,
+					   submission_time, 
+					   ROW_NUMBER() OVER (PARTITION BY author_id,product_id ORDER BY submission_time DESC) AS rn
+                FROM reviews1)
 
-		EXECUTE sp_executesql @InsertSql;
+			MERGE INTO author_reviewtext AS art
+			USING (SELECT author_id,product_id,review_title,review_text,submission_time FROM unique_review WHERE rn = 1) AS ur
+			ON art.author_id = ur.author_id AND art.product_id = ur.product_id
 
-		COMMIT TRANSACTION;
-	END TRY
+			WHEN MATCHED THEN
+				UPDATE
+					SET art.review_title = ur.review_title,
+						art.review_text = ur.review_text,
+						art.submission_time = ur.submission_time
 
-	BEGIN CATCH
-		ROLLBACK TRANSACTION;
-		THROW;
-	END CATCH
+			WHEN NOT MATCHED BY TARGET THEN
+				INSERT (author_id,product_id,review_title,review_text,submission_time)
+				VALUES (ur.author_id,ur.product_id,ur.review_title,ur.review_text,ur.submission_time);
+
+	COMMIT TRANSACTION;
+		END TRY
+
+		BEGIN CATCH
+			ROLLBACK TRANSACTION ;
+
+			DECLARE @ErrorMessage NVARCHAR(4000);
+			DECLARE @ErrorSeverity INT;
+			DECLARE @ErrorState INT;
+
+			SELECT @ErrorMessage = ERROR_MESSAGE(),
+				   @ErrorSeverity = ERROR_SEVERITY(),
+			       @ErrorState = ERROR_STATE()
+
+			RAISERROR(@ErrorMessage,@ErrorSeverity,@ErrorState)
+		END CATCH
 END;
 ```
 
-**11.Stored Procedure for calculating average rating and count of review for product_review table**
+**Stored Procedure for calculating average rating, count of review and count of recommended(recommended =1 , not recommended =0) for product_review table**
 
-- This stored procedure, named get_product_review_rating, does not accept any parameters.
-- It begins by calculating the average rating from the author_rating table, storing the result in a Common Table Expression (CTE) named average_r.
-- Next, using another CTE, it calculates the count of reviews from the author_reviewtext table, stored in count_r.
-- The procedure employs the MERGE INTO command to update the product_reviews table. This command is advantageous as it allows for both updating existing records and inserting new ones based on matching product_id.
-- If a product_id in the product_reviews table matches one in the CTEs, the procedure updates the average rating and review count. If no match is found, it inserts a new record with the calculated values.
-- The BEGIN TRANSACTION ... COMMIT TRANSACTION block ensures atomicity. If any error occurs during the process, all operations are rolled back to prevent partial updates.
-- The procedure includes a BEGIN TRY ... BEGIN CATCH block to handle errors. If an error occurs, it rolls back the transaction and raises the error using the THROW statement, ensuring proper error handling. 
+**1. CTE for Unique Review:**
+
+The procedure uses a Common Table Expression (CTE) named **unique_review** to select **author_id,product_id,review_title,review_text and submission_time** from the **reviews1** table. **ROW_NUMBER()** function is use to assigns a unique number to each row per author_id,product_id with the latest submission_time allowing for filtering of duplicates and choose the latest review submitted.
+
+**2. MERGE Statement:**
+
+The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the author_reviewtext table. The MERGE use **author_reviewtext table** as it **TARGET** and the **unique_review** CTE table as it **SOURCE** on **author_id** and **product_id**. When the **author_id** and **product_id** from **author_reviewtext** table and CTE table(unique_review) match, it will update the review_title, review_text and submission_time column. When a author_id and product_id are not match between author_review table and CTE table(unique_review), it will insert the new value from CTE table(unique_review) into author_review table.
+
+**3. Transaction Management:**
+
+The use of BEGIN TRANSACTION, COMMIT TRANSACTION, and error handling via TRY...CATCH ensures that if any part of the operation fails, all changes are rolled back to maintain data integrity.
+
+**4. Error Handling:**
+
+If an error occurs during the merge process, the transaction is rolled back. The error details are captured in local variables (@ErrorMessage, @ErrorSeverity, @ErrorState), and the RAISERROR statement is used to re-throw the error, allowing for effective error reporting.
 ```sql
 CREATE OR ALTER PROCEDURE get_product_review_rating 
 AS

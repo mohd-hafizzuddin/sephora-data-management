@@ -1,49 +1,50 @@
 # **List of all store procedure and its explaination**
 
 
-**1. Stored Procedure for Brands table data insertion**
+Stored Procedure for Brands Table Data Insertion/Update
+This stored procedure handles the insertion and updating of records in the Brands table.
 
-- This stored procedure accepts a table as a parameter.
-- It selects the necessary columns (brand_id and brand_name) from the parameter table.
-- The procedure checks whether each brand_id from the @temptable exists in the brands table. Only non-existing brand_id will be inserted.
-- If a brand_id already exists, the procedure updates the corresponding record in the brands table to reflect any changes in the brand name column.
-- BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
-- The procedure uses a TRY...CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
-- After the ROLLBACK, the THROW statement re-raises the error, allowing it to be detected and make the error handling possible.
+1. CTE for Unique Brands:
+
+The procedure uses a Common Table Expression (CTE) named brand_unique to select brand_id and brand_name from the product_info table. ROW_NUMBER() function is use to assigns a unique number to each row per brand_id, allowing for filtering of duplicates.
+
+2. MERGE Statement:
+
+The MERGE statement is use to perform the UPSERT(UPDATE and INSERT) of records in the brands table. The MERGE use brands table as it target and use the unique_brand table as it source on brand_id. When the brand_id from brands table and CTE table(unique_brand) match, it will update the name. When a brand_id are not match between brands table and CTE table(unique_brand), it will insert the new value from CTE table(unique_brand) into brand table.
+
+3. Transaction Management:
+
+The use of BEGIN TRANSACTION, COMMIT TRANSACTION, and error handling via TRY...CATCH ensures that if any part of the operation fails, all changes are rolled back to maintain data integrity.
+
+4. Error Handling:
+
+If an error occurs during the merge process, the transaction is rolled back. The error details are captured in local variables (@ErrorMessage, @ErrorSeverity, @ErrorState), and the RAISERROR statement is used to re-throw the error, allowing for effective error reporting.
 
 ```sql
 CREATE OR ALTER PROCEDURE insertupdateBrands
-	@temptable nvarchar(128)
 AS
-BEGIN
-
-	DECLARE @InsertSQL nvarchar(MAX);
-	DECLARE @UpdateSQL nvarchar(MAX);
-    
+BEGIN   
 	BEGIN TRANSACTION;
 
 	BEGIN TRY
-		SET @InsertSQL = '
-		INSERT INTO brands
-		SELECT DISTINCT t.brand_id,t.brand_name 
-		FROM' + QUOTENAME(@temptable) + 't
-		WHERE NOT EXISTS ( 
-			SELECT 1
-			FROM brands b
-			WHERE b.brand_id = t.brand_id
-		);';
+	    
+		WITH brand_unique AS (
+		SELECT brand_id, 
+		       brand_name, 
+			   ROW_NUMBER() OVER(PARTITION BY brand_id ORDER BY brand_id) AS row_num
+	    FROM product_info)
 
-		EXECUTE sp_executesql @InsertSQL;
+		MERGE INTO brands AS b
+		USING (SELECT brand_id,brand_name FROM brand_unique WHERE row_num = 1) AS t
+		ON b.brand_id = t.brand_id
 
-		SET @UpdateSQL = '
-		UPDATE b                                   
-		SET b.brand_id = t.brand_id,
-		    b.brand_name = t.brand_name
-		FROM brands b
-		JOIN' + QUOTENAME(@temptable) + ' t
-		ON b.brand_id = t.brand_id ;';
+		WHEN MATCHED THEN
+			UPDATE
+			SET b.brand_name = t.brand_name
 
-		EXECUTE sp_executesql @UpdateSQL;
+		WHEN NOT MATCHED BY TARGET THEN
+			INSERT (brand_id,brand_name)
+			VALUES (t.brand_id,t.brand_name);
 
 		COMMIT TRANSACTION;
 
@@ -51,11 +52,17 @@ BEGIN
 	
 	BEGIN CATCH
 		ROLLBACK TRANSACTION;
-		THROW;
+		DECLARE @ErrorMessage NVARCHAR(4000);
+		DECLARE @ErrorSeverity INT;
+		DECLARE @ErrorState INT;
+
+		SELECT @ErrorMessage = ERROR_MESSAGE(),
+			   @ErrorSeverity = ERROR_SEVERITY(),
+		       @ErrorState = ERROR_STATE()
+
+		RAISERROR(@ERRORMESSAGE,@ERRORSEVERITY,@ERRORSTATE);
 	END CATCH
 END; 
-
-EXECUTE insertupdateBrands @temptable = 'product_info';
 ```
 
 **2. Stored Procedure for product table data insertion**

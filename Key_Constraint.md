@@ -42,11 +42,7 @@ ADD CONSTRAINT fk_pvariation FOREIGN KEY (product_id) REFERENCES product(product
 ALTER TABLE product
 ADD CONSTRAINT fk_product FOREIGN KEY (brand_id) REFERENCES brands(brand_id);
 
---assign foreign key on author_characteristic table
-ALTER TABLE author_characteristic
-ADD CONSTRAINT fk_authorcharac FOREIGN KEY (author_id) REFERENCES author(author_id); 
-
---assign foreign key on author_reviewtex table
+--assign foreign key on author_reviewtext table
 ALTER TABLE author_reviewtext
 ADD CONSTRAINT fk_authorid FOREIGN KEY (author_id) REFERENCES author(author_id); 
 

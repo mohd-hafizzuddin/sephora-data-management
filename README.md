@@ -205,13 +205,13 @@ The table from product_info and reviews1 are normalize into below tables
 
 1. insertupdateBrands: Automated inserts or updates brand data from the product_info table into the brands table. 
 2. insertupdateProduct: Automated inserts or updates product data from the product_info table into product table. 
-3. insertupdatepPricing: Automated inserts or updates product pricing data from product_info table into product_pricing table. 
+3. insertupdatePPricing: Automated inserts or updates product pricing data from product_info table into product_pricing table. 
 4. insertupdateStatus: Automated inserts or updates product status from product_info table information into the product_status table.
 5. insertupdateVariation: Automated inserts or updates product variations from product_info table into the product_variation table.
 6. insertupdateAuthor: Automated insert or updates author id and it characteristic from reviews table into author table.
-7. insertAuthorRat: Automated insert author rating from reviews table into author_rating table.
-8. insertAuthorReviewText: Automated insert author review text from reviews table intp author_reviewtext table.
-9. calculateproductReviews: Automated calculate the average rating,count of is_recommended from author_rating and count of review from author_reviewtext table then update the result into product_reviews table.
+7. insertupdateAuthorRat: Automated insert author rating from reviews table into author_rating table.
+8. insertupdateAuthorReviewText: Automated insert author review text from reviews table intp author_reviewtext table.
+9. calculateproductReviews: Automated calculate the average rating,count of (is_recommended) from author_rating and count of review from author_reviewtext table then update the result into product_reviews table.
 
 
 

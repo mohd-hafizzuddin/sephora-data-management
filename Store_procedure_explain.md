@@ -10,7 +10,7 @@ The procedure uses a Common Table Expression (CTE) named brand_unique to select 
 
 **2. MERGE Statement:**
 
-The MERGE statement is use to perform the UPSERT(UPDATE and INSERT) of records in the brands table. The MERGE use brands table as it target and use the unique_brand table as it source on brand_id. When the brand_id from brands table and CTE table(unique_brand) match, it will update the brand_name. When a brand_id are not match between brands table and CTE table(unique_brand), it will insert the new value from CTE table(unique_brand) into brand table.
+The MERGE statement is use to perform the UPSERT(UPDATE and INSERT) of records in the brands table. The MERGE use brands table as it target and use the unique_brand CTE table as it source on brand_id. When the brand_id from brands table and CTE table(unique_brand) match, it will update the brand_name. When a brand_id are not match between brands table and CTE table(unique_brand), it will insert the new value from CTE table(unique_brand) into brand table.
 
 **3. Transaction Management:**
 
@@ -73,7 +73,7 @@ The procedure uses a Common Table Expression (CTE) named **unique_product** to s
 
 **2. MERGE Statement:**
 
-The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the product table. The MERGE use **product table** as it **TARGET** and the **unique_product** table as it **SOURCE** on **product_id**. When the **product_id** from **product** table and CTE table(unique_brand) match, it will update the product_name and brand_id. When a product_id are not match between product table and CTE table(unique_product), it will insert the new value from CTE table(unique_product) into product table.
+The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the product table. The MERGE use **product table** as it **TARGET** and the **unique_product** CTE table as it **SOURCE** on **product_id**. When the **product_id** from **product** table and CTE table(unique_brand) match, it will update the product_name and brand_id. When a product_id are not match between product table and CTE table(unique_product), it will insert the new value from CTE table(unique_product) into product table.
 
 **3. Transaction Management:**
 
@@ -130,59 +130,71 @@ BEGIN
 END;
 ```
 
-**3. Stored Procedure for product_pricing table data insertion**
-- This stored procedure accepts a table as a parameter.
-- It selects the necessary columns (product_id,price_usd,value_price_usd,sale_price_usd) from the parameter table.
-- The procedure checks whether each product_id from the @temptable exists in the product table. Only non-existing product_id in the product table will be inserted.
-- If a product_id already exists, the procedure updates the corresponding record in the product table to reflect any changes in the price_usd,value_price_usd and sale_price_usd columns.
-- BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
-- The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
-- After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
+**Stored Procedure for product_pricing table data insertion**
+
+**1. CTE for Unique Pricing:**
+
+The procedure uses a Common Table Expression (CTE) named **unique_ppricing** to select **product_id, price_usd,value_price_usd and sale_price_usd** from the **product_info** table. **ROW_NUMBER()** function is use to assigns a unique number to each row per product_id allowing for filtering of duplicates.
+
+**2. MERGE Statement:**
+
+The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the product table. The MERGE use **product_pricing table** as it **TARGET** and the **unique_ppricing** CTE table as it **SOURCE** on **product_id**. When the **product_id** from **product_pticing** table and CTE table(unique_ppricing) match, it will update the price_usd,value_price_usd and sale_price_usd. When a product_id are not match between product_pricing table and CTE table(unique_ppricing), it will insert the new value from CTE table(unique_ppricing) into product_pricing table.
+
+**3. Transaction Management:**
+
+The use of BEGIN TRANSACTION, COMMIT TRANSACTION, and error handling via TRY...CATCH ensures that if any part of the operation fails, all changes are rolled back to maintain data integrity.
+
+**4. Error Handling:**
+
+If an error occurs during the merge process, the transaction is rolled back. The error details are captured in local variables (@ErrorMessage, @ErrorSeverity, @ErrorState), and the RAISERROR statement is used to re-throw the error, allowing for effective error reporting.
   
 ```sql
 CREATE OR ALTER PROCEDURE insertupdatePPricing
-@temptable nvarchar(128)
 AS
 BEGIN
-	DECLARE @InsertSQL nvarchar(MAX);
-	DECLARE @UpdateSQL nvarchar(MAX);
 
 	BEGIN TRANSACTION;
 
-	BEGIN TRY
+		BEGIN TRY
+		WITH unique_ppricing AS (
+		SELECT product_id,
+		       price_usd,
+			   value_price_usd,
+			   sale_price_usd,
+			   ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY product_id) AS row_num
+		FROM product_info)
+	    
+		MERGE INTO product_pricing AS pp
+		USING (SELECT product_id,price_usd,value_price_usd,sale_price_usd FROM unique_ppricing WHERE row_num = 1) AS t
+		ON pp.product_id = t.product_id
 
-	SET @InsertSQL = '
-	INSERT INTO product_pricing
-	SELECT product_id,price_usd,value_price_usd,sale_price_usd
-	FROM' + QUOTENAME(@temptable) + ' t
-	WHERE NOT EXISTS (
-		SELECT 1 
-		FROM product_pricing pp
-		WHERE pp.product_id = t.product_id
-		);';
+		WHEN MATCHED THEN
+			UPDATE
+			SET pp.price_usd = t.price_usd,
+			    pp.value_price_usd = t.value_price_usd,
+				pp.sale_price_usd = t.sale_price_usd
 
-	EXECUTE sp_executesql @InsertSQL;
+		WHEN NOT MATCHED BY TARGET THEN
+		    INSERT (product_id,price_usd,value_price_usd,sale_price_usd)
+			VALUES (t.product_id,t.price_usd,t.value_price_usd,t.sale_price_usd);
 	
-	SET @UpdateSQL = '
-	Update pp
-	SET pp.product_id = t.product_id,
-	    pp.price_usd = t.price_usd,
-		pp.value_price_usd = t.value_price_usd,
-		pp.sale_price_usd = t.sale_price_usd
-	FROM product_pricing pp
-	JOIN' + QUOTENAME(@temptable) + 't
-	ON pp.product_id = t.product_id;';
+		COMMIT TRANSACTION;
 
-	EXECUTE sp_executesql @UpdateSQL;
-	
-	COMMIT TRANSACTION;
+		END TRY
 
-	END TRY
+		BEGIN CATCH
+			ROLLBACK TRANSACTION;
+			
+			DECLARE @ErrorMessage NVARCHAR(4000);
+			DECLARE @ErrorSeverity INT;
+			DECLARE @ErrorState INT;
 
-	BEGIN CATCH
-		ROLLBACK TRANSACTION;
-		THROW;
-	END CATCH
+			SELECT @ErrorMessage = ERROR_MESSAGE(),
+		           @ErrorSeverity = ERROR_SEVERITY(),
+			       @ErrorState = ERROR_STATE();
+
+			RAISERROR (@ErrorMessage,@ErrorSeverity,@ErrorState);
+		END CATCH
 END;
 ```
 
@@ -239,148 +251,201 @@ CREATE OR ALTER PROCEDURE insertupdateReviews
  END;
 ```
 
-**5. Stored Procedure for product_status table data insertion**
-- This stored procedure accepts a table as a parameter.
-- It selects the necessary columns (product_id,limited_edition,new,online_only,out_of_stock,sephora_exclusive) from the parameter table.
-- The procedure checks whether each product_id from the @temptable exists in the product table. Only non-existing product_id in the product table will be inserted.
-- If a product_id already exists, the procedure updates the corresponding record in the product table to reflect any changes in the limited_edition,new,online_only,out_of_stock and sephora_exclusive columns.
-- BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
-- The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
-- After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
+**Stored Procedure for product_status table data insertion**
+**1. CTE for Unique Status:**
+
+The procedure uses a Common Table Expression (CTE) named **unique_status** to select **product_id, limited_edition, new,online_only,out_of_stock and sephora_exclusive** from the **product_info** table. **ROW_NUMBER()** function is use to assigns a unique number to each row per product_id allowing for filtering of duplicates.
+
+**2. MERGE Statement:**
+
+The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the product table. The MERGE use **product_status table** as it **TARGET** and the **unique_status** CTE table as it **SOURCE** on **product_id**. When the **product_id** from **product_status** table and CTE table(unique_status) match, it will update the limited_edition, new,online_only,out_of_stock and sephora_exclusive column. When a product_id are not match between product_status table and CTE table(unique_status), it will insert the new value from CTE table(unique_status) into product_status table.
+
+**3. Transaction Management:**
+
+The use of BEGIN TRANSACTION, COMMIT TRANSACTION, and error handling via TRY...CATCH ensures that if any part of the operation fails, all changes are rolled back to maintain data integrity.
+
+**4. Error Handling:**
+
+If an error occurs during the merge process, the transaction is rolled back. The error details are captured in local variables (@ErrorMessage, @ErrorSeverity, @ErrorState), and the RAISERROR statement is used to re-throw the error, allowing for effective error reporting.
   
 ```sql
 CREATE OR ALTER PROCEDURE insertupdateStatus
- @temptable nvarchar(128)
  AS
  BEGIN
-
-	DECLARE @InsertSql nvarchar(MAX);
-	DECLARE @UpdateSql nvarchar(MAX);
 	 
 	BEGIN TRANSACTION;
 
-	BEGIN TRY
-		SET @InsertSql = '
-		INSERT INTO product_status
-		SELECT t.product_id,t.limited_edition,t.new,t.online_only,t.out_of_stock,t.sephora_exclusive
-		FROM' + QUOTENAME(@temptable) + 't
-		WHERE NOT EXISTS(
-			SELECT 1
-			FROM product_status ps
-			WHERE ps.product_id = t.product_id
-			);';
+		BEGIN TRY
+			WITH unique_status AS (
+				SELECT product_id,
+				       limited_edition,
+					   new,
+					   online_only,
+					   out_of_stock,
+					   sephora_exclusive,
+					   ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY product_id) AS row_num
+			    FROM product_info)
 
-		EXECUTE sp_executesql @InsertSql;
+		    MERGE INTO product_status AS ps
+			USING (SELECT 
+			      product_id,
+				  limited_edition,
+				  new,
+				  online_only,
+				  out_of_stock,
+				  sephora_exclusive 
+				  FROM unique_status 
+				  WHERE row_num = 1) AS t
+			ON ps.product_id = t.product_id
 
-		SET @UpdateSql = '
-		UPDATE ps
-		SET ps.product_id = t.product_id,
-		    ps.limited_edition = t.limited_edition,
-			ps.new = t.new,
-			ps.online_only = t.online_only,
-			ps.out_of_stock = t.out_of_stock,
-			ps.sephora_exclusive = t.sephora_exclusive
-		FROM product_status ps
-		JOIN' + QUOTENAME(@temptable) + 't
-		ON ps.product_id = t.product_id;';
+			WHEN MATCHED THEN
+				UPDATE
+				SET ps.limited_edition = t.limited_edition,
+				    ps.new = t.new,
+					ps.online_only = t.online_only,
+					ps.out_of_stock = t.out_of_stock,
+					ps.sephora_exclusive = t.sephora_exclusive
 
-		EXECUTE sp_executesql @UpdateSql;
+			WHEN NOT MATCHED BY TARGET THEN
+				INSERT (product_id,limited_edition,new,online_only,out_of_stock,sephora_exclusive)
+				VALUES (t.product_id,t.limited_edition,t.new,t.online_only, t.out_of_stock,t.sephora_exclusive);
 
 		COMMIT TRANSACTION;
-	END TRY
+		END TRY
 
 	BEGIN CATCH
 		ROLLBACK TRANSACTION;
-		THROW;
+		
+		DECLARE @ErrorMessage NVARCHAR(4000);
+	    DECLARE @ErrorSeverity INT;
+		DECLARE @ErrorState INT;
+
+			SELECT @ErrorMessage = ERROR_MESSAGE(),
+		           @ErrorSeverity = ERROR_SEVERITY(),
+			       @ErrorState = ERROR_STATE();
+
+		RAISERROR (@ErrorMessage,@ErrorSeverity,@ErrorState);
 	END CATCH
  END;
 ```
 
-**6. Stored Procedure for product_variation table data insertion**
-- This stored procedure accepts a table as a parameter.
-- It selects the necessary columns (product_id, size, variation_type, variation_value, variation_desc, ingredients, highlights, primary_category, secondary_category, ertiary_category, child_count, child_max_price, child_min_price) from the parameter table.
-- The procedure checks whether each product_id from the temporary table exists in the product_variation. Only non-existing product_id in the product_variation table will be inserted.
-- If a product_id already exists, the procedure updates the corresponding record in the product table to reflect any changes in the size, variation_type, variation_value, variation_desc, ingredients, highlights, primary_category, secondary_category, ertiary_category, child_count, child_max_price and child_min_price columns.
-- BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
-- The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
-- After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
+**Stored Procedure for product_variation table data insertion**
+**1. CTE for Unique Variation:**
+
+The procedure uses a Common Table Expression (CTE) named **unique_variation** to select **size ,variation_type ,variation_value ,variation_desc ,ingredients ,highlights ,primary_category ,secondary_category ,tertiary_category, child_count, child_max_price and child_min_price** from the **product_info** table. **ROW_NUMBER()** function is use to assigns a unique number to each row per product_id allowing for filtering of duplicates.
+
+**2. MERGE Statement:**
+
+The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the product table. The MERGE use **product_variation table** as it **TARGET** and the **unique_variation** CTE table as it **SOURCE** on **product_id**. When the **product_id** from **product_variation** table and CTE table(unique_variation) match, it will update the size ,variation_type ,variation_value ,variation_desc ,ingredients ,highlights ,primary_category ,secondary_category ,tertiary_category, child_count, child_max_price and child_min_price column. When a product_id are not match between product_status table and CTE table(unique_variation), it will insert the new value from CTE table(unique_variation) into product_status table.
+
+**3. Transaction Management:**
+
+The use of BEGIN TRANSACTION, COMMIT TRANSACTION, and error handling via TRY...CATCH ensures that if any part of the operation fails, all changes are rolled back to maintain data integrity.
+
+**4. Error Handling:**
+
+If an error occurs during the merge process, the transaction is rolled back. The error details are captured in local variables (@ErrorMessage, @ErrorSeverity, @ErrorState), and the RAISERROR statement is used to re-throw the error, allowing for effective error reporting.
   
 ```sql
 CREATE OR ALTER PROCEDURE insertupdateVariation
- @temptable nvarchar(128)
  AS
  BEGIN
-
-	DECLARE @InsertSql nvarchar(MAX);
-	DECLARE @UpdateSql nvarchar(MAX);
 	 
 	BEGIN TRANSACTION;
 
 	BEGIN TRY
-		SET @InsertSql = '
-		INSERT INTO product_variation
-		SELECT t.product_id,
-		       t.size ,
-                       t.variation_type ,
-                       t.variation_value ,
-	               t.variation_desc ,
-	               t.ingredients ,
-	               t.highlights ,
-	               t.primary_category ,
-	               t.secondary_category ,
-	               t.tertiary_category ,
-	               t.child_count,
-	               t.child_max_price,
-	               t.child_min_price
-		FROM' + QUOTENAME(@temptable) + 't
-		WHERE NOT EXISTS(
-			SELECT 1
-			FROM product_variation pv
-			WHERE pv.product_id = t.product_id
-			);';
 
-		EXECUTE sp_executesql @InsertSql;
+		WITH unique_variation AS (
+		SELECT product_id,
+		       size ,
+                   variation_type ,
+                   variation_value ,
+	           variation_desc ,
+	           ingredients ,
+	           highlights ,
+	           primary_category ,
+	           secondary_category ,
+	           tertiary_category ,
+	           child_count,
+	           child_max_price,
+	           child_min_price,
+			   ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY product_id) AS row_num
+		FROM product_info)
 
-		SET @UpdateSql = '
-		UPDATE pv
-		SET pv.product_id = t.product_id,
-		    pv.size = t.size,
-                    pv.variation_type = t.variation_type,
-			pv.variation_value = t.variation_value,
-			pv.variation_desc = t.variation_desc,
-			pv.ingredients = t.ingredients,
-			pv.highlights = t.highlights,
-			pv.primary_category = t.primary_category,
-			pv.secondary_category = t.secondary_category,
-			pv.tertiary_category = t.tertiary_category,
-			pv.variation_count = t.child_count,
-			pv.var_max_price = t.child_max_price,
-			pv.var_min_price = t.child_min_price
-		FROM product_variation pv 
-		JOIN' + QUOTENAME(@temptable) + 't
-		ON pv.product_id = t.product_id;';
+		MERGE INTO product_variation AS pv
+		USING (SELECT product_id,
+					  size ,
+					  variation_type ,
+					  variation_value ,
+					  variation_desc ,
+					  ingredients ,
+					  highlights ,
+					  primary_category ,
+					  secondary_category ,
+					  tertiary_category ,
+					  child_count,
+					  child_max_price,
+					  child_min_price
+					  FROM unique_variation WHERE row_num = 1) AS uv
+		ON pv.product_id = uv.product_id
 
-		EXECUTE sp_executesql @UpdateSql;
-
-		COMMIT TRANSACTION;
+		WHEN MATCHED THEN
+			UPDATE
+				SET pv.size = uv.size,
+					pv.variation_type = uv.variation_type,
+					pv.variation_value = uv.variation_value,
+					pv.variation_desc = uv.variation_desc,
+					pv.ingredients = uv.ingredients,
+					pv.highlights = uv.highlights,
+					pv.primary_category = uv.primary_category,
+					pv.secondary_category = uv.secondary_category,
+					pv.tertiary_category = uv.tertiary_category,
+					pv.variation_count = uv.child_count,
+					pv.var_max_price = uv.child_max_price,
+					pv.var_min_price = uv.child_min_price
+		
+		WHEN NOT MATCHED BY TARGET THEN
+			INSERT ( product_id, size, variation_type, variation_value, variation_desc, ingredients, highlights, primary_category, 
+                                secondary_category, tertiary_category,variation_count,var_max_price,var_min_price)
+			VALUES ( uv.product_id, uv.size, uv.variation_type, uv.variation_value, uv.variation_desc, uv.ingredients, uv.highlights, 
+                                 uv.primary_category,uv.secondary_category,uv.tertiary_category,uv.child_count,uv.child_max_price,uv.child_min_price);
+               
+	           
+	    COMMIT TRANSACTION;
 	END TRY
 
 	BEGIN CATCH
 		ROLLBACK TRANSACTION;
-		THROW;
+		
+		DECLARE @ErrorMessage NVARCHAR(4000);
+		DECLARE @ErrorSeverity INT;
+		DECLARE @ErrorState INT;
+
+		SELECT @ErrorMessage = ERROR_MESSAGE(),
+		       @ErrorSeverity = ERROR_SEVERITY(),
+			   @ErrorState = ERROR_STATE()
+
+		RAISERROR(@ErrorMessage,@ErrorSeverity,@ErrorState)
 	END CATCH
  END;
- EXECUTE insertupdateVariation @temptable = 'product_info';
 ```
 
-**7.Stored Procedure for author table**
-- This stored procedure accepts a table as a parameter.
-- It selects the necessary column (author_id) from the parameter table.
-- The procedure checks whether each author_id from the @temptable exists in the author table. Only non-existing author_id in the author table will be inserted.
-- If a author_id already exists, the procedure updates the corresponding record in the author table to reflect any changes in the author_id column.
-- BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
-- The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
-- After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
+**Stored Procedure for author table**
+**1. CTE for Unique Variation:**
+
+The procedure uses a Common Table Expression (CTE) named **unique_variation** to select **size ,variation_type ,variation_value ,variation_desc ,ingredients ,highlights ,primary_category ,secondary_category ,tertiary_category, child_count, child_max_price and child_min_price** from the **product_info** table. **ROW_NUMBER()** function is use to assigns a unique number to each row per product_id allowing for filtering of duplicates.
+
+**2. MERGE Statement:**
+
+The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the product table. The MERGE use **product_variation table** as it **TARGET** and the **unique_variation** CTE table as it **SOURCE** on **product_id**. When the **product_id** from **product_variation** table and CTE table(unique_variation) match, it will update the size ,variation_type ,variation_value ,variation_desc ,ingredients ,highlights ,primary_category ,secondary_category ,tertiary_category, child_count, child_max_price and child_min_price column. When a product_id are not match between product_status table and CTE table(unique_variation), it will insert the new value from CTE table(unique_variation) into product_status table.
+
+**3. Transaction Management:**
+
+The use of BEGIN TRANSACTION, COMMIT TRANSACTION, and error handling via TRY...CATCH ensures that if any part of the operation fails, all changes are rolled back to maintain data integrity.
+
+**4. Error Handling:**
+
+If an error occurs during the merge process, the transaction is rolled back. The error details are captured in local variables (@ErrorMessage, @ErrorSeverity, @ErrorState), and the RAISERROR statement is used to re-throw the error, allowing for effective error reporting.
   
 ```sql
 CREATE OR ALTER PROCEDURE insertupdateAuthor

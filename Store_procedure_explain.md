@@ -4,19 +4,19 @@
 Stored Procedure for Brands Table Data Insertion/Update
 This stored procedure handles the insertion and updating of records in the Brands table.
 
-1. CTE for Unique Brands:
+**1. CTE for Unique Brands:**
 
-The procedure uses a Common Table Expression (CTE) named brand_unique to select brand_id and brand_name from the product_info table. ROW_NUMBER() function is use to assigns a unique number to each row per brand_id, allowing for filtering of duplicates.
+The procedure uses a Common Table Expression (CTE) named brand_unique to select brand_id and brand_name from the product_info table. ROW_NUMBER() function is use to assigns a unique number to each row per brand_id allowing for filtering of duplicates.
 
-2. MERGE Statement:
+**2. MERGE Statement:**
 
-The MERGE statement is use to perform the UPSERT(UPDATE and INSERT) of records in the brands table. The MERGE use brands table as it target and use the unique_brand table as it source on brand_id. When the brand_id from brands table and CTE table(unique_brand) match, it will update the name. When a brand_id are not match between brands table and CTE table(unique_brand), it will insert the new value from CTE table(unique_brand) into brand table.
+The MERGE statement is use to perform the UPSERT(UPDATE and INSERT) of records in the brands table. The MERGE use brands table as it target and use the unique_brand table as it source on brand_id. When the brand_id from brands table and CTE table(unique_brand) match, it will update the brand_name. When a brand_id are not match between brands table and CTE table(unique_brand), it will insert the new value from CTE table(unique_brand) into brand table.
 
-3. Transaction Management:
+**3. Transaction Management:**
 
 The use of BEGIN TRANSACTION, COMMIT TRANSACTION, and error handling via TRY...CATCH ensures that if any part of the operation fails, all changes are rolled back to maintain data integrity.
 
-4. Error Handling:
+**4. Error Handling:**
 
 If an error occurs during the merge process, the transaction is rolled back. The error details are captured in local variables (@ErrorMessage, @ErrorSeverity, @ErrorState), and the RAISERROR statement is used to re-throw the error, allowing for effective error reporting.
 
@@ -65,57 +65,68 @@ BEGIN
 END; 
 ```
 
-**2. Stored Procedure for product table data insertion**
+## **Stored Procedure for product Table Data Insertion/Update**
 
-- This stored procedure accepts a table as a parameter.
-- It selects the necessary columns (product_id,product_name and brand_id) from the parameter table.
-- The procedure checks whether each product_id from the @temptable exists in the product table. Only non-existing product_id in the product table will be inserted.
-- If a product_id already exists, the procedure updates the corresponding record in the product table to reflect any changes in the product name and brand_id columns.
-- BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
-- The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
-- After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
+**1. CTE for Unique Product:**
+
+The procedure uses a Common Table Expression (CTE) named **unique_product** to select **product_id, product_name and brand_id** from the **product_info** table. **ROW_NUMBER()** function is use to assigns a unique number to each row per product_id allowing for filtering of duplicates.
+
+**2. MERGE Statement:**
+
+The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the product table. The MERGE use **product table** as it **TARGET** and the **unique_product** table as it **SOURCE** on **product_id**. When the **product_id** from **product** table and CTE table(unique_brand) match, it will update the product_name and brand_id. When a product_id are not match between product table and CTE table(unique_product), it will insert the new value from CTE table(unique_product) into product table.
+
+**3. Transaction Management:**
+
+The use of BEGIN TRANSACTION, COMMIT TRANSACTION, and error handling via TRY...CATCH ensures that if any part of the operation fails, all changes are rolled back to maintain data integrity.
+
+**4. Error Handling:**
+
+If an error occurs during the merge process, the transaction is rolled back. The error details are captured in local variables (@ErrorMessage, @ErrorSeverity, @ErrorState), and the RAISERROR statement is used to re-throw the error, allowing for effective error reporting.
   
 ```sql
 CREATE OR ALTER PROCEDURE insertupdateProduct
-     @temptable nvarchar(128)
 AS
 BEGIN
-	DECLARE @InsertSQL nvarchar(MAX);
-	DECLARE @UpdateSQL nvarchar(MAX);
+    BEGIN TRANSACTION;
 
-	BEGIN TRANSACTION;
+    BEGIN TRY
 
-	BEGIN TRY
-	    SET @InsertSQL = '
-		INSERT INTO product
-		SELECT t.product_id,t.product_name,t.brand_id
-		FROM' + QUOTENAME(@temptable) + ' t
-		WHERE NOT EXISTS(
-			SELECT 1
-			FROM product p
-			WHERE p.product_id = t.product_id
-			);';
+	    WITH unique_product AS (
+		SELECT product_id,
+		       product_name,
+			   brand_id,
+			   ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY product_id) AS row_num
+		FROM product_info)
 
-		EXECUTE sp_executesql @InsertSQL;
-		
-		SET @UpdateSQL = '
-		UPDATE p
-		SET p.product_id = t.product_id,
-		    p.product_name = t.product_name,
-			p.brand_id = t.brand_id
-		FROM product p
-		JOIN' + QUOTENAME(@temptable) + 't
-		ON p.product_id = t.product_id;';
+        MERGE INTO product AS p
+        USING (SELECT product_id,product_name,brand_id FROM unique_product WHERE row_num = 1) AS t
+        ON p.product_id = t.product_id 
 
-		EXECUTE sp_executesql @UpdateSQL;
+        WHEN MATCHED THEN
+            UPDATE
+            SET  p.product_name = t.product_name,
+			     p.brand_id = t.brand_id
 
-		COMMIT TRANSACTION;
-	END TRY
+        WHEN NOT MATCHED BY TARGET THEN
+            INSERT (product_id, product_name, brand_id)
+            VALUES (t.product_id, t.product_name, t.brand_id);
 
-	BEGIN CATCH
-		ROLLBACK TRANSACTION ;
-		THROW;
-	END CATCH
+        COMMIT TRANSACTION;
+    END TRY
+
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        
+		DECLARE @ErrorMessage NVARCHAR(4000);
+		DECLARE @ErrorSeverity INT;
+		DECLARE @ErrorState INT;
+
+		SELECT @ErrorMessage = ERROR_MESSAGE(),
+		       @ErrorSeverity = ERROR_SEVERITY(),
+			   @ErrorState = ERROR_STATE();
+
+		RAISERROR (@ErrorMessage,@ErrorSeverity,@ErrorState);
+    END CATCH
 END;
 ```
 

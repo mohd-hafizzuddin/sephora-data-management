@@ -69,9 +69,10 @@ brand_name nvarchar(150) NOT NULL
 | Column Name      | Data Type      | Description                                           |
 |------------------|----------------|-------------------------------------------------------|
 | product_id       | nvarchar(50)    | Foreign key referencing `product(product_id)`         |
-| favourite_count  | int             | Number of times the product was marked as favorite    |
 | average_rating   | DECIMAL(5,4)    | Average rating of the product                        |
 | reviews_count    | int             | Total number of reviews for the product               |
+| count_recommended  | int             | Count of recommended product by author    |
+| count_not_recommended  | int             |  Count of not recommended product by author    |
 
 ```sql
 CREATE TABLE product_reviews(
@@ -181,27 +182,19 @@ Next, we will normalize the reviews1 table.
 | brand_name                  | nvarchar(50)     | The full name of the product brand               |
 | price_usd                   | decimal(18, 2)   | The price of the product in US dollars           |
 
-Using table normalization technique and follow all it rules, we normalize above table into 4 new table
+Using table normalization technique and follow all it rules, we normalize above table into 3 new table
+
+
 
 ### `author`
 | Column Name  | Data Type      | Description                              |
 |--------------|----------------|------------------------------------------|
 | author_id    | nvarchar(20)    | Primary key, unique identifier for each author |
-
-```sql
-CREATE TABLE author (
-author_id nvarchar(20) NOT NULL,
-);
-```
-
-### `author_characteristic`
-| Column Name  | Data Type      | Description                              |
-|--------------|----------------|------------------------------------------|
-| author_id    | nvarchar(20)    | Foreign key referencing `author(author_id)` |
 | skin_tone    | nvarchar(50)    | Skin tone of the author                 |
 | eye_color    | nvarchar(50)    | Eye color of the author                 |
 | skin_type    | nvarchar(50)    | Skin type of the author                 |
 | hair_color   | nvarchar(50)    | Hair color of the author                |
+
 
 ```sql
 CREATE TABLE author_characteristic (

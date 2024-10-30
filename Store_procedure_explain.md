@@ -138,7 +138,7 @@ The procedure uses a Common Table Expression (CTE) named **unique_ppricing** to 
 
 **2. MERGE Statement:**
 
-The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the product table. The MERGE use **product_pricing table** as it **TARGET** and the **unique_ppricing** CTE table as it **SOURCE** on **product_id**. When the **product_id** from **product_pticing** table and CTE table(unique_ppricing) match, it will update the price_usd,value_price_usd and sale_price_usd. When a product_id are not match between product_pricing table and CTE table(unique_ppricing), it will insert the new value from CTE table(unique_ppricing) into product_pricing table.
+The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the product_pricing table. The MERGE use **product_pricing table** as it **TARGET** and the **unique_ppricing** CTE table as it **SOURCE** on **product_id**. When the **product_id** from **product_pticing** table and CTE table(unique_ppricing) match, it will update the price_usd,value_price_usd and sale_price_usd. When a product_id are not match between product_pricing table and CTE table(unique_ppricing), it will insert the new value from CTE table(unique_ppricing) into product_pricing table.
 
 **3. Transaction Management:**
 
@@ -258,7 +258,7 @@ The procedure uses a Common Table Expression (CTE) named **unique_status** to se
 
 **2. MERGE Statement:**
 
-The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the product table. The MERGE use **product_status table** as it **TARGET** and the **unique_status** CTE table as it **SOURCE** on **product_id**. When the **product_id** from **product_status** table and CTE table(unique_status) match, it will update the limited_edition, new,online_only,out_of_stock and sephora_exclusive column. When a product_id are not match between product_status table and CTE table(unique_status), it will insert the new value from CTE table(unique_status) into product_status table.
+The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the product_status table. The MERGE use **product_status table** as it **TARGET** and the **unique_status** CTE table as it **SOURCE** on **product_id**. When the **product_id** from **product_status** table and CTE table(unique_status) match, it will update the limited_edition, new,online_only,out_of_stock and sephora_exclusive column. When a product_id are not match between product_status table and CTE table(unique_status), it will insert the new value from CTE table(unique_status) into product_status table.
 
 **3. Transaction Management:**
 
@@ -336,7 +336,7 @@ The procedure uses a Common Table Expression (CTE) named **unique_variation** to
 
 **2. MERGE Statement:**
 
-The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the product table. The MERGE use **product_variation table** as it **TARGET** and the **unique_variation** CTE table as it **SOURCE** on **product_id**. When the **product_id** from **product_variation** table and CTE table(unique_variation) match, it will update the size ,variation_type ,variation_value ,variation_desc ,ingredients ,highlights ,primary_category ,secondary_category ,tertiary_category, child_count, child_max_price and child_min_price column. When a product_id are not match between product_status table and CTE table(unique_variation), it will insert the new value from CTE table(unique_variation) into product_status table.
+The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the product_variation table. The MERGE use **product_variation table** as it **TARGET** and the **unique_variation** CTE table as it **SOURCE** on **product_id**. When the **product_id** from **product_variation** table and CTE table(unique_variation) match, it will update the size ,variation_type ,variation_value ,variation_desc ,ingredients ,highlights ,primary_category ,secondary_category ,tertiary_category, child_count, child_max_price and child_min_price column. When a product_id are not match between product_status table and CTE table(unique_variation), it will insert the new value from CTE table(unique_variation) into product_status table.
 
 **3. Transaction Management:**
 
@@ -431,13 +431,13 @@ CREATE OR ALTER PROCEDURE insertupdateVariation
 ```
 
 **Stored Procedure for author table**
-**1. CTE for Unique Variation:**
+**1. CTE for Unique Charac:**
 
-The procedure uses a Common Table Expression (CTE) named **unique_variation** to select **size ,variation_type ,variation_value ,variation_desc ,ingredients ,highlights ,primary_category ,secondary_category ,tertiary_category, child_count, child_max_price and child_min_price** from the **product_info** table. **ROW_NUMBER()** function is use to assigns a unique number to each row per product_id allowing for filtering of duplicates.
+The procedure uses a Common Table Expression (CTE) named **unique_charac** to select **author_id,skin_tone,eye_color,skin_type and hair_color** from the **reviews1** table. **ROW_NUMBER()** function is use to assigns a unique number to each row per author_id allowing for filtering of duplicates.
 
 **2. MERGE Statement:**
 
-The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the product table. The MERGE use **product_variation table** as it **TARGET** and the **unique_variation** CTE table as it **SOURCE** on **product_id**. When the **product_id** from **product_variation** table and CTE table(unique_variation) match, it will update the size ,variation_type ,variation_value ,variation_desc ,ingredients ,highlights ,primary_category ,secondary_category ,tertiary_category, child_count, child_max_price and child_min_price column. When a product_id are not match between product_status table and CTE table(unique_variation), it will insert the new value from CTE table(unique_variation) into product_status table.
+The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the author table. The MERGE use **author table** as it **TARGET** and the **unique_charac** CTE table as it **SOURCE** on **author_id**. When the **author_id** from **author** table and CTE table(unique_charac) match, it will update the skin_tone,eye_color,skin_type and hair_color column. When a author_id are not match between author table and CTE table(unique_charac), it will insert the new value from CTE table(unique_charac) into author table.
 
 **3. Transaction Management:**
 
@@ -449,126 +449,134 @@ If an error occurs during the merge process, the transaction is rolled back. The
   
 ```sql
 CREATE OR ALTER PROCEDURE insertupdateAuthor
-@temptable nvarchar(128)
 AS
 BEGIN
-	DECLARE @InsertSql NVARCHAR(MAX);
-	DECLARE @UpdateSql NVARCHAR(MAX);
 
 	BEGIN TRANSACTION;
 
-	BEGIN TRY
-		SET @InsertSql = '
-		INSERT INTO author
-		SELECT DISTINCT author_id 
-		FROM ' + QUOTENAME(@temptable) + ' t
-		WHERE NOT EXISTS (
-		                  SELECT 1
-						  FROM author a
-						  WHERE a.author_id = t.author_id);';
-
-		EXECUTE sp_executesql @InsertSql;
-
-		SET @UpdateSql = '
-		UPDATE a
-		SET a.author_id = t.author_id
-		FROM author a
-		JOIN' + QUOTENAME(@temptable) + 't
-		ON a.author_id = t.author_id;'; --this maybe not necessary
-
-		EXECUTE sp_executesql @UpdateSql;
+		BEGIN TRY
 	    
-		COMMIT TRANSACTION;
- 	END TRY
+			WITH unique_charac AS(
+			SELECT author_id,
+				   skin_tone,
+			       eye_color,
+			       skin_type,
+			       hair_color,
+			       ROW_NUMBER() OVER (PARTITION BY author_id ORDER BY submission_time DESC) AS rn
+		    FROM reviews1)
+
+			MERGE INTO author AS a
+			USING (SELECT author_id,skin_tone,eye_color,skin_type,hair_color FROM unique_charac WHERE rn = 1) AS uc
+			ON a.author_id = uc.author_id
+
+			WHEN MATCHED THEN
+				UPDATE
+					SET a.skin_tone = uc.skin_tone,
+					    a.eye_color = uc.eye_color,
+						a.skin_type = uc.skin_type,
+						a.hair_color = uc.hair_color
+
+			WHEN NOT MATCHED BY TARGET THEN
+				INSERT (author_id,skin_tone,eye_color,skin_type,hair_color)
+				VALUES (uc.author_id,uc.skin_tone,uc.eye_color,uc.skin_type,uc.hair_color);
+
+	COMMIT TRANSACTION;
+		END TRY
 
 	BEGIN CATCH
 		ROLLBACK TRANSACTION;
-		THROW;
+		DECLARE @ErrorMessage NVARCHAR(4000);
+		DECLARE @ErrorSeverity INT;
+		DECLARE @ErrorState INT;
+
+		SELECT @ErrorMessage = ERROR_MESSAGE(),
+		       @ErrorSeverity = ERROR_SEVERITY(),
+			   @ErrorState = ERROR_STATE()
+
+		RAISERROR(@ErrorMessage,@ErrorSeverity,@ErrorState)
+
 	END CATCH
 END;
 ```
 
-**8.Stored Procedure for author_characteristic table**
-- This stored procedure accepts a table as a parameter.
-- It selects the necessary column (author_id,skin_tone,eye_color,skin_type,hair_color) from the parameter table.
-- The procedure checks whether each author_id from the @temptable exists in the author_characteristic table. Only non-existing author_id in the author_characteristic table will be inserted.
-- BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
-- The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
-- After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
-  
+**Stored Procedure for author_rating table**
+**1. CTE for Unique Rat:**
+
+The procedure uses a Common Table Expression (CTE) named **unique_rat** to select **author_id,product_id,rating,is_recommended,total_pos_feedback_count,
+total_neg_feedback_count,total_feedback_count,helpfulness,submission_time** from the **reviews1** table. **ROW_NUMBER()** function is use to assigns a unique number to each row per author_id,product_id with the latest submission_time allowing for filtering of duplicates and choose the latest review submitted.
+
+**2. MERGE Statement:**
+
+The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the author_rating table. The MERGE use **author_rating table** as it **TARGET** and the **unique_rat** CTE table as it **SOURCE** on **author_id** and **product_id**. When the **author_id** and **product_id** from **author_rating** table and CTE table(unique_rat) match, it will update the product_id,rating,is_recommended, total_pos_feedback_count,
+total_neg_feedback_count, total_feedback_count,helpfulness and submission_time column. When a author_id and product_id are not match between author_rating table and CTE table(unique_rat), it will insert the new value from CTE table(unique_rat) into author_rating table.
+
+**3. Transaction Management:**
+
+The use of BEGIN TRANSACTION, COMMIT TRANSACTION, and error handling via TRY...CATCH ensures that if any part of the operation fails, all changes are rolled back to maintain data integrity.
+
+**4. Error Handling:**
+
+If an error occurs during the merge process, the transaction is rolled back. The error details are captured in local variables (@ErrorMessage, @ErrorSeverity, @ErrorState), and the RAISERROR statement is used to re-throw the error, allowing for effective error reporting.
+
 ```sql
-CREATE OR ALTER PROCEDURE insertAuthorCharac
- @temptable nvarchar(128)
+CREATE OR ALTER PROCEDURE insertupdateAuthorRat
 AS
 BEGIN
-	DECLARE @InsertSql nvarchar(MAX);
 
 	BEGIN TRANSACTION;
 
-	BEGIN TRY
-		SET @InsertSql = '
-		INSERT INTO author_characteristic
-		SELECT DISTINCT author_id,skin_tone,eye_color,skin_type,hair_color
-		FROM' + QUOTENAME(@temptable) + ' t
-		WHERE NOT EXISTS (
-		       SELECT 1 
-			   FROM author_characteristic ac
-			   WHERE ac.author_id = t.author_id AND
-			         ac.skin_tone = t.skin_tone AND
-					 ac.eye_color = t.eye_color AND
-					 ac.skin_type = t.skin_type AND
-					 ac.hair_color = t.hair_color);';
+		BEGIN TRY
+			
+			WITH unique_rat AS (
+			SELECT author_id,
+			product_id,
+			rating,
+			is_recommended,
+			total_pos_feedback_count,
+			total_neg_feedback_count,
+			total_feedback_count,
+			helpfulness,
+			submission_time, 
+			ROW_NUMBER() OVER (PARTITION BY author_id,product_id ORDER BY submission_time DESC) AS rn
+			FROM reviews1)
 
-		EXECUTE sp_executesql @InsertSql;
+			MERGE INTO author_rating AS ar
+			USING ( SELECT author_id,product_id,rating,is_recommended,total_pos_feedback_count, 
+                                 total_neg_feedback_count,total_feedback_count,helpfulness,submission_time
+			        FROM unique_rat WHERE rn = 1) AS r
+                        ON ar.author_id = r.author_id AND ar.product_id = r.product_id
 
-		COMMIT TRANSACTION;
-	END TRY
+			WHEN MATCHED THEN
+				UPDATE
+					SET ar.rating = r.rating,
+						ar.is_recommended = r.is_recommended,
+						ar.total_pos_feedback_count = r.total_pos_feedback_count,
+						ar.total_neg_feedback_count = r.total_neg_feedback_count,
+						ar.total_feedback_count = r.total_feedback_count,
+						ar.helpfulness = r.helpfulness,
+						ar.submission_time = r.submission_time
 
-	BEGIN CATCH
-		ROLLBACK TRANSACTION;
-		THROW;
-	END CATCH
-END;
-```
+			WHEN NOT MATCHED BY TARGET THEN
+				INSERT (author_id,product_id,rating,is_recommended,total_pos_feedback_count, 
+                                        total_neg_feedback_count,total_feedback_count,helpfulness,submission_time)
+				VALUES (r.author_id,r.product_id,r.rating,r.is_recommended,r.total_pos_feedback_count, 
+                                        r.total_neg_feedback_count,r.total_feedback_count,r.helpfulness,r.submission_time);
 
-**9.Stored Procedure for author_rating table**
-- This stored procedure accepts a table as a parameter.
-- It selects the necessary column (author_id, product_id, rating, is_recommended, total_pos_feedback_count, total_neg_feedback_count, total_feedback_count, helpfulness, submission_time) from the parameter table.
-- The procedure checks whether each author_id from the @temptable exists in the author_rating table. Only non-existing author_id in the author_rating table will be inserted.
-- BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
-- The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
-- After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
+	COMMIT TRANSACTION;
+		END TRY
 
-```sql
-CREATE OR ALTER PROCEDURE insertAuthorRat
- @temptable nvarchar(128)
-AS
-BEGIN
-	DECLARE @InsertSql nvarchar(MAX);
-	DECLARE @UpdateSql nvarchar(MAX);
+		BEGIN CATCH
+			ROLLBACK TRANSACTION;
+			DECLARE @ErrorMessage NVARCHAR(4000);
+			DECLARE @ErrorSeverity INT;
+			DECLARE @ErrorState INT;
 
-	BEGIN TRANSACTION;
+			SELECT @ErrorMessage = ERROR_MESSAGE(),
+				   @ErrorSeverity = ERROR_SEVERITY(),
+			       @ErrorState = ERROR_STATE()
 
-	BEGIN TRY
-		SET @InsertSql = '
-		INSERT INTO author_rating
-		SELECT DISTINCT 
-                author_id,product_id,rating,is_recommended,total_pos_feedback_count,total_neg_feedback_count,total_feedback_count,helpfulness,submission_time
-		FROM' + QUOTENAME(@temptable) + ' t
-		WHERE NOT EXISTS (
-		       SELECT 1 
-			   FROM author_rating ar
-			   WHERE ar.author_id = t.author_id);';
-
-		EXECUTE sp_executesql @InsertSql;
-
-		COMMIT TRANSACTION;
-	END TRY
-
-	BEGIN CATCH
-		ROLLBACK TRANSACTION;
-		THROW;
-	END CATCH
+			RAISERROR(@ErrorMessage,@ErrorSeverity,@ErrorState)
+		END CATCH
 END;
 ```
 **10.Stored Procedure for author_reviewtext**

@@ -1,4 +1,4 @@
-# **List of all store procedure and its explaination**
+# **List of all store procedure and its explanation**
 
 
 Stored Procedure for Brands Table Data Insertion/Update
@@ -6,11 +6,11 @@ This stored procedure handles the insertion and updating of records in the Brand
 
 **1. CTE for Unique Brands:**
 
-The procedure uses a Common Table Expression (CTE) named brand_unique to select brand_id and brand_name from the product_info table. ROW_NUMBER() function is use to assigns a unique number to each row per brand_id allowing for filtering of duplicates.
+The procedure uses a Common Table Expression (CTE) named **brand_unique** to select **brand_id and brand_name** from the **product_info** table. **ROW_NUMBER()** function is use to assigns a unique number to each row per brand_id allowing for filtering of duplicates.
 
 **2. MERGE Statement:**
 
-The MERGE statement is use to perform the UPSERT(UPDATE and INSERT) of records in the brands table. The MERGE use brands table as it target and use the unique_brand CTE table as it source on brand_id. When the brand_id from brands table and CTE table(unique_brand) match, it will update the brand_name. When a brand_id are not match between brands table and CTE table(unique_brand), it will insert the new value from CTE table(unique_brand) into brand table.
+The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the brands table. The MERGE use **brands table** as it **TARGET** and use the **brand_unique** CTE table as it **SOURCE** on **brand_id**. When the **brand_id** from **brands table** and CTE table(unique_brand) match, it will update the brand_name. When a brand_id are not match between brands table and CTE table(unique_brand), it will insert the new value from CTE table(unique_brand) into brand table.
 
 **3. Transaction Management:**
 
@@ -198,60 +198,8 @@ BEGIN
 END;
 ```
 
-**4. Stored Procedure for product_reviews table data insertion**
-- This stored procedure accepts a table as a parameter.
-- It selects the necessary columns (product_id,loves_count) from the parameter table.
-- In this store procedure we only populate product_id and favourite_count. The other remaining 2 column will be populate later using another store procedure.
-- The procedure checks whether each product_id from the @temptable exists in the product table. Only non-existing product_id in the product table will be inserted.
-- If a product_id already exists, the procedure updates the corresponding record in the product table to reflect any changes in the loves_count column.
-- BEGIN TRANSaCTION ... COMMIT TRANSACTION are used to ensure atomicity, meaning that if any error occurs, all operations are ROLLBACK to avoid partial updates.
-- The procedure uses a BEGIN TRY... BEGIN CATCH block to handle potential errors. If an error occurs during the insert or update process, the transaction is ROLLBACK to maintain data integrity.
-- After the ROLLBACK, the THROW statement will raises the error, allowing it to be detected and make the error handling possible.
-  
-```sql
-CREATE OR ALTER PROCEDURE insertupdateReviews
- @temptable nvarchar(128)
- AS
- BEGIN
-	DECLARE @InsertSql nvarchar(MAX);
-	DECLARE @UpdateSql nvarchar(MAX);
-
-	BEGIN TRANSACTION;
-
-	BEGIN TRY
-		SET @InsertSql = '
-		INSERT INTO product_reviews(product_id,favourite_count)
-		SELECT t.product_id,t.loves_count
-		FROM' + QUOTENAME(@temptable) + ' t
-		WHERE NOT EXISTS(
-			SELECT 1
-			FROM product_reviews pr
-			WHERE pr.product_id = t.product_id
-			);';
-
-		EXECUTE sp_executesql @InsertSql;
-
-		SET @UpdateSql = '
-		UPDATE pr
-		SET pr.product_id = t.product_id,
-		    pr.favourite_count = t.loves_count
-		FROM product_reviews pr
-		JOIN' + QUOTENAME(@temptable) + ' t
-		ON pr.product_id = t.product_id;';
-
-		EXECUTE sp_executesql @UpdateSql;
-
-		COMMIT TRANSACTION;
-
-	END TRY
-	BEGIN CATCH
-		ROLLBACK TRANSACTION;
-		THROW;
-	END CATCH
- END;
-```
-
 **Stored Procedure for product_status table data insertion**
+
 **1. CTE for Unique Status:**
 
 The procedure uses a Common Table Expression (CTE) named **unique_status** to select **product_id, limited_edition, new,online_only,out_of_stock and sephora_exclusive** from the **product_info** table. **ROW_NUMBER()** function is use to assigns a unique number to each row per product_id allowing for filtering of duplicates.
@@ -330,6 +278,7 @@ CREATE OR ALTER PROCEDURE insertupdateStatus
 ```
 
 **Stored Procedure for product_variation table data insertion**
+
 **1. CTE for Unique Variation:**
 
 The procedure uses a Common Table Expression (CTE) named **unique_variation** to select **size ,variation_type ,variation_value ,variation_desc ,ingredients ,highlights ,primary_category ,secondary_category ,tertiary_category, child_count, child_max_price and child_min_price** from the **product_info** table. **ROW_NUMBER()** function is use to assigns a unique number to each row per product_id allowing for filtering of duplicates.
@@ -431,6 +380,7 @@ CREATE OR ALTER PROCEDURE insertupdateVariation
 ```
 
 **Stored Procedure for author table**
+
 **1. CTE for Unique Charac:**
 
 The procedure uses a Common Table Expression (CTE) named **unique_charac** to select **author_id,skin_tone,eye_color,skin_type and hair_color** from the **reviews1** table. **ROW_NUMBER()** function is use to assigns a unique number to each row per author_id allowing for filtering of duplicates.
@@ -500,6 +450,7 @@ END;
 ```
 
 **Stored Procedure for author_rating table**
+
 **1. CTE for Unique Rat:**
 
 The procedure uses a Common Table Expression (CTE) named **unique_rat** to select **author_id,product_id,rating,is_recommended,total_pos_feedback_count,
@@ -580,6 +531,7 @@ BEGIN
 END;
 ```
 **Stored Procedure for author_reviewtext**
+
 **1. CTE for Unique Review:**
 
 The procedure uses a Common Table Expression (CTE) named **unique_review** to select **author_id,product_id,review_title,review_text and submission_time** from the **reviews1** table. **ROW_NUMBER()** function is use to assigns a unique number to each row per author_id,product_id with the latest submission_time allowing for filtering of duplicates and choose the latest review submitted.
@@ -647,13 +599,13 @@ END;
 
 **Stored Procedure for calculating average rating, count of review and count of recommended(recommended =1 , not recommended =0) for product_review table**
 
-**1. CTE for Unique Review:**
+**1. CTE for Is Recommended, Not recommended, Average Rating and Count Review:**
 
-The procedure uses a Common Table Expression (CTE) named **unique_review** to select **author_id,product_id,review_title,review_text and submission_time** from the **reviews1** table. **ROW_NUMBER()** function is use to assigns a unique number to each row per author_id,product_id with the latest submission_time allowing for filtering of duplicates and choose the latest review submitted.
+The procedure uses  Common Table Expression (CTE) named **is_recomm, is_not_recomm,avg_rat and count_review** to calculate count of recommended and count of not recommended and average rating from the **author_rating** table. Meanwhile, Common Table Expression (CTE) **count_review** use to calculate count of review from **author_reviewtext** table.
 
 **2. MERGE Statement:**
 
-The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the author_reviewtext table. The MERGE use **author_reviewtext table** as it **TARGET** and the **unique_review** CTE table as it **SOURCE** on **author_id** and **product_id**. When the **author_id** and **product_id** from **author_reviewtext** table and CTE table(unique_review) match, it will update the review_title, review_text and submission_time column. When a author_id and product_id are not match between author_review table and CTE table(unique_review), it will insert the new value from CTE table(unique_review) into author_review table.
+The MERGE statement is use to perform the **UPSERT(UPDATE and INSERT)** of records in the product_reviews table. The MERGE use **product_review table** as it **TARGET** and the **is_recomm, is_not_recomm,avg_rat and count_review** CTE table as it **SOURCE** on **product_id**. When **product_id** from **product_review** table and CTE table(is_recomm, is_not_recomm,avg_rat and count_review) match, it will update the avg_rating,count_review,count_recomm and count_not_recomm column. When a product_id are not match between product_review table and all the CTE table, it will insert the new product_id and new calculation from all CTE table into product_review table.
 
 **3. Transaction Management:**
 
@@ -662,46 +614,86 @@ The use of BEGIN TRANSACTION, COMMIT TRANSACTION, and error handling via TRY...C
 **4. Error Handling:**
 
 If an error occurs during the merge process, the transaction is rolled back. The error details are captured in local variables (@ErrorMessage, @ErrorSeverity, @ErrorState), and the RAISERROR statement is used to re-throw the error, allowing for effective error reporting.
+
 ```sql
-CREATE OR ALTER PROCEDURE get_product_review_rating 
-AS
-BEGIN
-	BEGIN TRY
-		BEGIN TRANSACTION;
-		
-		WITH average_r AS ( -- CTE to calculate average rating on author rating table
-		SELECT product_id,
-			AVG(rating) AS avg_rating
-		FROM author_rating
-		GROUP BY product_id),
 
-		count_r AS ( -- CTE to calculate count of review on author_reviewtext
-		SELECT product_id,
-			COUNT(review_title) AS count_review
-		FROM author_reviewtext
-		GROUP BY product_id)
+CREATE OR ALTER PROCEDURE calculateproductReviews
+ AS
+ BEGIN
 
-		MERGE INTO product_reviews AS pr
-		USING average_r AS ar
-		LEFT JOIN count_r AS cr
-			ON ar.product_id = cr.product_id
-		ON pr.product_id = ar.product_id
+	BEGIN TRANSACTION;
 
-		WHEN MATCHED THEN
-			UPDATE
-				SET pr.average_rating = ar.avg_rating,
-				    pr.reviews_count = cr.count_review
+		BEGIN TRY
+			WITH is_recomm AS (
+			SELECT DISTINCT product_id, 
+				COUNT(is_recommended) AS count_recomm
+			FROM author_rating
+			WHERE is_recommended = 1
+			GROUP BY product_id),
 
-		WHEN NOT MATCHED BY Target THEN 
-			INSERT (product_id,average_rating,reviews_count)
-			VALUES (ar.product_id,ar.avg_rating,cr.count_review);
+			is_not_recomm AS (
+			SELECT product_id, 
+				COUNT(is_recommended) AS count_not_recomm
+			FROM author_rating
+			WHERE is_recommended = 0
+			GROUP BY product_id),
 
-	    COMMIT TRANSACTION;
-	END TRY
+			avg_rat AS (
+			SELECT product_id,
+				AVG(rating) AS avg_rating
+			FROM author_rating
+			GROUP BY product_id),
 
-	BEGIN CATCH
-		ROLLBACK TRANSACTION;
-		THROW;
-	END CATCH
-END;
+			count_review AS (
+			SELECT product_id,
+				COUNT(review_title) AS count_review
+			FROM author_reviewtext
+			GROUP BY product_id)
+			
+			MERGE INTO product_reviews AS pr
+			USING (SELECT ir.product_id,
+					ar.avg_rating,
+					cr.count_review,
+					ir.count_recomm,
+					inr.count_not_recomm
+			FROM is_recomm ir
+			LEFT JOIN is_not_recomm inr
+			ON ir.product_id = inr.product_id
+			LEFT JOIN avg_rat ar
+			ON ir.product_id = ar.product_id
+			LEFT JOIN count_review cr
+			ON ir.product_id = cr.product_id
+			) AS review_cal
+			ON pr.product_id = review_cal.product_id
+
+			WHEN MATCHED THEN
+				UPDATE
+				SET pr.average_rating = review_cal.avg_rating,
+				    pr.reviews_count = review_cal.count_review,
+					pr.count_recommended = review_cal.count_recomm,
+					pr.count_not_recommended = review_cal.count_not_recomm
+
+			WHEN NOT MATCHED BY TARGET THEN
+			INSERT (product_id,average_rating,reviews_count,count_recommended,count_not_recommended)
+			VALUES (review_cal.product_id,review_cal.avg_rating,review_cal.count_review,review_cal.count_recomm,review_cal.count_not_recomm);
+
+	COMMIT TRANSACTION;
+
+		END TRY
+
+		BEGIN CATCH
+			ROLLBACK TRANSACTION;
+			
+		    DECLARE @ErrorMessage NVARCHAR(4000);
+		    DECLARE @ErrorSeverity INT;
+		    DECLARE @ErrorState INT;
+
+		    SELECT @ErrorMessage = ERROR_MESSAGE(),
+		           @ErrorSeverity = ERROR_SEVERITY(),
+			       @ErrorState = ERROR_STATE()
+
+		    RAISERROR(@ErrorMessage,@ErrorSeverity,@ErrorState)
+			
+		END CATCH
+ END;
 ```

@@ -15,7 +15,7 @@ This project involve in managing data from Sephora. The goal of this project is 
 **Tool Use:**
 SQL Server Management Studio (SSMS)
 - Database Creation
-- Data normalization
+- Data Normalization
 - Data Transformation
 - Data cleaning
 
